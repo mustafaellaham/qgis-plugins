@@ -13,3 +13,4 @@ repository=
 icon=icon.png
 experimental=False
 deprecated=False
+#test 1
