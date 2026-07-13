@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background rounded rectangle -->
+  <rect x="8" y="8" width="112" height="112" rx="16" fill="#2c3e50" stroke="#34495e" stroke-width="2"/>
+
+  <!-- Cable coil representation -->
+  <ellipse cx="64" cy="68" rx="36" ry="30" fill="none" stroke="#3498db" stroke-width="6"/>
+  <ellipse cx="64" cy="68" rx="24" ry="20" fill="none" stroke="#3498db" stroke-width="5"/>
+  <ellipse cx="64" cy="68" rx="12" ry="10" fill="none" stroke="#3498db" stroke-width="4"/>
+
+  <!-- Cable ends extending out -->
+  <path d="M 28 68 Q 20 68 18 55" fill="none" stroke="#3498db" stroke-width="4" stroke-linecap="round"/>
+  <path d="M 100 68 Q 108 68 110 55" fill="none" stroke="#3498db" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Sparkle/star for optimization -->
+  <g fill="#f39c12">
+    <polygon points="64,18 66,26 74,26 68,31 70,39 64,34 58,39 60,31 54,26 62,26"/>
+  </g>
+
+  <!-- Ruler ticks at bottom -->
+  <g stroke="#ecf0f1" stroke-width="2" stroke-linecap="round">
+    <line x1="24" y1="108" x2="24" y2="100"/>
+    <line x1="40" y1="108" x2="40" y2="96"/>
+    <line x1="56" y1="108" x2="56" y2="100"/>
+    <line x1="72" y1="108" x2="72" y2="96"/>
+    <line x1="88" y1="108" x2="88" y2="100"/>
+    <line x1="104" y1="108" x2="104" y2="96"/>
+    <line x1="24" y1="108" x2="104" y2="108" stroke-width="2"/>
+  </g>
+
+  <!-- Small checkmark for 'optimal' -->
+  <g fill="#2ecc71">
+    <polygon points="94,24 98,28 106,18 103,15 98,22 96,20"/>
+  </g>
+</svg>

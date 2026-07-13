@@ -1,0 +1,9 @@
+[general]
+name=Precon Cable Optimizer
+qgisMinimumVersion=3.0
+description=Optimizes precon cable selection by calculating the best cable length with minimum waste using adjustable slack
+version=1.0
+author=Mustafa M M Elaham
+category=Vector
+about=Reads route lengths from a 'length' column and calculates the optimal precon cable length from fixed cable sizes (50,80,100,120,150,180,200,250,300,350) by trying slack values 10-7m to minimize waste. Adds precon_cable, slack_used, and waste_m columns.
+tags=ftth,fiber,cable,precon,optimizer

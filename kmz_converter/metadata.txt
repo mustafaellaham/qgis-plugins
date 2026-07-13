@@ -1,0 +1,16 @@
+[general]
+name=KMZ KML Bulk Converter
+qgisMinimumVersion=3.0
+description=Import all KML/KMZ folders as separate layers and export to GPKG or SHP format with optional CRS reprojection. Each folder becomes its own layer. Output uses the same filename as input.
+version=1.1
+author=MUstafa M M Ellaham
+email=
+about=KMZ/KML Bulk Converter - Import all KML/KMZ folders as separate layers and export to GPKG or SHP with optional CRS reprojection. Each KML <Folder> becomes its own layer. Output filename matches input filename.\n\nCopyright (c) 2025 MUstafa M M Ellaham. All rights reserved.\nThis plugin is provided as-is for FTTH/GIS workflows. Redistribution or modification requires written permission from the author.
+tags=kml, kmz, converter, gpkg, shp, ftth, fiber, import, export
+homepage=https://github.com/
+tracker=https://github.com/issues
+repository=https://github.com/
+category=Vector
+icon=icon.png
+experimental=False
+deprecated=False

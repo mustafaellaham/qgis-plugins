@@ -1,0 +1,6 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/plugins/precon_cable_optimizer">
+        <file>icon.svg</file>
+    </qresource>
+</RCC>

@@ -1,0 +1,15 @@
+[general]
+name=Claw Monitor
+qgisMinimumVersion=3.28
+description=Real-time monitor for AI operations in QGIS. Shows commands, code execution, progress, and results from Kimi Claw / OpenClaw.
+version=1.0
+author=Mustafa M M Elaham
+email=
+category=Plugins
+tags=ai,automation,monitor,ftth,claw
+homepage=
+tracker=
+repository=
+icon=icon.png
+experimental=False
+deprecated=False
