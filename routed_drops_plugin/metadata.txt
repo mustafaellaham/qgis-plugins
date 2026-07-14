@@ -1,0 +1,10 @@
+[general]
+name=Routed Drop Lines Generator
+qgisMinimumVersion=3.16
+description=Routes premises through the closest pole on the distribution cable route. Uses DC cable lines to order poles, then chooses shortest path via prev/current/next pole. Creates one continuous polyline per premise.
+version=3.0
+author=Mustafa M M Ellaham
+email=Mustafaellaham@gmail.com
+tags=ftth, routing, drops, poles, cable, length, qgis, dj, distribution
+about=Routes premises through their closest intermediate pole to the pole where their Distribution Joint (DJ) is located. Auto-matches DJs to nearest poles, then premises to nearest DJs. Creates one continuous polyline per premise: Premise -> Closest Intermediate Pole -> DJ's Pole. Measures total cable length including both segments. No manual pole naming needed.
+category=Plugins
