@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-FTTH Labeler v8.6 (internal) — Q1.0 release
+FTTH Labeler v8.6.21 — QGIS Plugin
 Copyright (c) Mustafa M M Ellaham. All rights reserved.
 
 Proprietary and confidential. Unauthorized copying, distribution,
@@ -41,7 +41,9 @@ import re
 import json
 import csv
 import datetime
-from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtCore import QVariant, Qt
+from qgis.PyQt.QtWidgets import QAction, QMenu
+from qgis.PyQt.QtGui import QIcon
 from qgis.core import (
     QgsApplication, QgsProcessing,
     QgsProject, QgsVectorLayer, QgsFeature, QgsGeometry, QgsPointXY,
@@ -88,10 +90,92 @@ class FTTHLabelerV2Plugin:
     def __init__(self, iface):
         self.iface = iface
         self.provider = FTTHLabelerProvider()
+        self.menu = None
+        self.actions = []
+
     def initGui(self):
+        # Add Processing algorithms
         QgsApplication.processingRegistry().addProvider(self.provider)
+
+        # Add menu under Plugins menu
+        self.menu = QMenu("FTTH Labeler", self.iface.mainWindow())
+
+        # Labeler action
+        action_label = QAction("FTTH Labeler", self.iface.mainWindow())
+        action_label.triggered.connect(self._run_labeler)
+        self.menu.addAction(action_label)
+        self.actions.append(action_label)
+
+        # Validator action
+        action_validate = QAction("FTTH Validator", self.iface.mainWindow())
+        action_validate.triggered.connect(self._run_validator)
+        self.menu.addAction(action_validate)
+        self.actions.append(action_validate)
+
+        # Splicing Plan action
+        action_splice = QAction("FTTH Splicing Plan", self.iface.mainWindow())
+        action_splice.triggered.connect(self._run_splicing)
+        self.menu.addAction(action_splice)
+        self.actions.append(action_splice)
+
+        # BOM action
+        action_bom = QAction("FTTH BOM Generator", self.iface.mainWindow())
+        action_bom.triggered.connect(self._run_bom)
+        self.menu.addAction(action_bom)
+        self.actions.append(action_bom)
+
+        # Add separator
+        self.menu.addSeparator()
+
+        # About action
+        action_about = QAction("About", self.iface.mainWindow())
+        action_about.triggered.connect(self._show_about)
+        self.menu.addAction(action_about)
+        self.actions.append(action_about)
+
+        # Add menu to Plugins menu bar
+        plugins_menu = self.iface.pluginMenu()
+        plugins_menu.addMenu(self.menu)
+
     def unload(self):
+        # Remove Processing provider
         QgsApplication.processingRegistry().removeProvider(self.provider)
+        # Remove menu actions
+        plugins_menu = self.iface.pluginMenu()
+        if self.menu:
+            plugins_menu.removeAction(self.menu.menuAction())
+            self.menu.deleteLater()
+            self.menu = None
+        self.actions = []
+
+    def _run_labeler(self):
+        processing.execAlgorithmDialog('ftth_labeler:ftth_labeler_v2', {})
+
+    def _run_validator(self):
+        processing.execAlgorithmDialog('ftth_labeler:ftth_validator', {})
+
+    def _run_splicing(self):
+        processing.execAlgorithmDialog('ftth_labeler:ftth_splicing_plan', {})
+
+    def _run_bom(self):
+        processing.execAlgorithmDialog('ftth_labeler:ftth_bom', {})
+
+    def _show_about(self):
+        from qgis.PyQt.QtWidgets import QMessageBox
+        QMessageBox.information(
+            self.iface.mainWindow(),
+            "About FTTH Labeler",
+            "<h3>FTTH Labeler v8.6.21</h3>"
+            "<p>By Mustafa M M Ellaham</p>"
+            "<p>Automated FTTH network labeling for QGIS</p>"
+            "<p>Features:</p>"
+            "<ul>"
+            "<li>Auto-label AG, Block, FJ, DJ, DC, Pole</li>"
+            "<li>Splicing plan Excel export</li>"
+            "<li>BOM generator</li>"
+            "<li>Pre-flight validation</li>"
+            "</ul>"
+        )
 
 
 class FTTHLabelAlgorithm(QgsProcessingAlgorithm):
@@ -380,7 +464,7 @@ class FTTHLabelAlgorithm(QgsProcessingAlgorithm):
         fc_layer = self.parameterAsVectorLayer(parameters, self.IN_FC, context)
         
         feedback.pushInfo("=" * 60)
-        feedback.pushInfo("FTTH Labeler V1.0 (build 8.6.19) — By Mustafa M M Ellaham")
+        feedback.pushInfo("FTTH Labeler v8.6.21 — By Mustafa M M Ellaham")
         feedback.pushInfo("=" * 60)
         feedback.pushInfo(f"Area Code: {area_code}")
         feedback.pushInfo(f"Zone: {zone}")
@@ -1842,7 +1926,7 @@ class FTTHValidatorAlgorithm(QgsProcessingAlgorithm):
 
 
 # =============================================================================
-# FTTH SPLICING PLAN  v8.0  -- Excel output (direct .xlsx)
+# FTTH SPLICING PLAN  v8.6.21  -- Excel output (direct .xlsx)
 # =============================================================================
 # CORRECTED APPROACH (v7.4):
 #   Uses DJ Polygons as the PRIMARY method to match houses to DJs.
@@ -1913,7 +1997,7 @@ class FTTHSplicingPlanAlgorithm(QgsProcessingAlgorithm):
 
     def shortHelpString(self):
         return """
-<h3>FTTH Splicing Plan (Excel output) v8.0</h3>
+<h3>FTTH Splicing Plan (Excel output) v8.6.21</h3>
 <p>Uses <b>DJ Polygons</b> as the PRIMARY method to match houses to DJs.
 Each DJ Polygon defines the exact service area of one DJ. Houses inside
 a polygon belong to that DJ -- exact, no ambiguity. ALL DJs appear in
@@ -2005,6 +2089,9 @@ per-DJ cable routing, and premise data.</p>
         FIXED_COLS = 3       # Pole, FEEDER, AG
         COLS_PER_DC = 10     # DC_label, DC_number, Size, No., Splitter, Leg, Pole_num, DJ_num, DC_len, DC_slack
         TRAILING_COLS = 3    # slack_length, premise_data_name, Block
+        COORD_COLS = 2       # LAT, LONG (EPSG:4326 decimal degrees)
+
+        # No Plus Code — LAT/LONG in decimal degrees (EPSG:4326) only
 
         HEADER_FILL = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
         SUBHEADER_FILL = PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid")
@@ -2098,16 +2185,45 @@ per-DJ cable routing, and premise data.</p>
                     ag_groups[ag][block][pos]['house_fields_map'][house] = hf
 
         # Sort houses and convert to ordered DJ lists
+        # v8.6.20: Detect position gaps (no dependency) and split into sub-blocks
         for ag in ag_groups:
-            for block in ag_groups[ag]:
+            for block in list(ag_groups[ag].keys()):
                 for pos in ag_groups[ag][block]:
                     ag_groups[ag][block][pos]['houses'] = sorted(
                         set(ag_groups[ag][block][pos]['houses'])
                     )
                 positions = sorted(ag_groups[ag][block].keys())
-                ag_groups[ag][block] = [
-                    ag_groups[ag][block][p] for p in positions
-                ]
+
+                # Detect gaps: positions should be continuous (1,2,3,4...)
+                # If gap found (e.g., 1,2,4 -> gap at 3), split into sub-blocks
+                sub_blocks = []
+                current_sub = [positions[0]] if positions else []
+                for i in range(1, len(positions)):
+                    if positions[i] - positions[i-1] > 1:
+                        # Gap detected — split here
+                        sub_blocks.append(current_sub)
+                        current_sub = [positions[i]]
+                    else:
+                        current_sub.append(positions[i])
+                if current_sub:
+                    sub_blocks.append(current_sub)
+
+                # Build DJ lists from positions
+                if len(sub_blocks) > 1:
+                    # Gap found — create sub-blocks
+                    # Store original block data before deleting
+                    orig_block_data = ag_groups[ag][block]
+                    del ag_groups[ag][block]
+                    for sb_idx, sb_positions in enumerate(sub_blocks):
+                        sub_block_name = "{}_S{}".format(block, sb_idx + 1)
+                        ag_groups[ag][sub_block_name] = [
+                            orig_block_data[p] for p in sb_positions
+                        ]
+                else:
+                    # No gap — keep as single block
+                    ag_groups[ag][block] = [
+                        ag_groups[ag][block][p] for p in positions
+                    ]
 
         # --- Build Excel ---
         wb = Workbook()
@@ -2145,9 +2261,10 @@ per-DJ cable routing, and premise data.</p>
                 break
         num_house_fields = len(house_field_names)
 
-        total_cols = FIXED_COLS + (max_djs_per_block * COLS_PER_DC) + TRAILING_COLS + num_house_fields
+        total_cols = FIXED_COLS + (max_djs_per_block * COLS_PER_DC) + TRAILING_COLS + num_house_fields + COORD_COLS
         trailing_base = FIXED_COLS + (max_djs_per_block * COLS_PER_DC) + 1
         house_fields_base = trailing_base + TRAILING_COLS  # start after trailing columns
+        coord_base = house_fields_base + num_house_fields  # start after house fields
 
         # Row 1: Title
         # Title 1: DC columns (1 to trailing_base - 1)
@@ -2165,15 +2282,22 @@ per-DJ cable routing, and premise data.</p>
         # Title 3: House field columns (if any)
         if num_house_fields > 0:
             ws.merge_cells(start_row=1, start_column=house_fields_base, end_row=1,
-                           end_column=total_cols)
+                           end_column=coord_base - 1)
             c = ws.cell(row=1, column=house_fields_base, value="PREMISE DATA FIELDS")
             c.font = TITLE_FONT; c.alignment = CENTER_ALIGNMENT; c.fill = TITLE_FILL
+
+        # Title 4: Coordinate columns (LAT, LONG)
+        ws.merge_cells(start_row=1, start_column=coord_base, end_row=1, end_column=total_cols)
+        c = ws.cell(row=1, column=coord_base, value="COORDINATES (EPSG:4326)")
+        c.font = TITLE_FONT; c.alignment = CENTER_ALIGNMENT; c.fill = TITLE_FILL
 
         for col in range(1, total_cols + 1):
             cell = ws.cell(row=1, column=col)
             if col < trailing_base:
                 cell.fill = HEADER_FILL
             elif col < house_fields_base:
+                cell.fill = TITLE_FILL
+            elif col < coord_base:
                 cell.fill = TITLE_FILL
             else:
                 cell.fill = TITLE_FILL
@@ -2238,6 +2362,20 @@ per-DJ cable routing, and premise data.</p>
             c = ws.cell(row=3, column=house_fields_base + fi, value=fn)
             c.font = BOLD_FONT; c.alignment = CENTER_ALIGNMENT
             c.fill = HEADER_FILL; c.border = THIN_BORDER
+
+        # Coordinate headers (LAT, LONG in EPSG:4326)
+        coord_headers = ["LAT", "LONG"]
+        for ci, ch in enumerate(coord_headers):
+            c = ws.cell(row=3, column=coord_base + ci, value=ch)
+            c.font = BOLD_FONT; c.alignment = CENTER_ALIGNMENT
+            c.fill = HEADER_FILL; c.border = THIN_BORDER
+
+        # Build house coordinate lookup from output_rows
+        house_coord_lookup = {}
+        for row in output_rows:
+            h_name = row.get('Name_2', '')
+            if h_name:
+                house_coord_lookup[h_name] = (row.get('house_lat', ''), row.get('house_lon', ''))
 
         # --- Data Rows ---
         current_row = 4
@@ -2334,6 +2472,11 @@ per-DJ cable routing, and premise data.</p>
                             ws.cell(row=current_row, column=house_fields_base + fi,
                                     value=house_data.get(fn, ''))
 
+                    # 5. Write COORDINATE columns (LAT, LONG in EPSG:4326)
+                    h_lat, h_lon = house_coord_lookup.get(house_name, ('', ''))
+                    ws.cell(row=current_row, column=coord_base + 0, value=h_lat)
+                    ws.cell(row=current_row, column=coord_base + 1, value=h_lon)
+
                     # Track Leg=9 yellow cells so we don't overwrite them
                     yellow_cols = set()
                     for seg_idx in range(num_djs):
@@ -2389,6 +2532,10 @@ per-DJ cable routing, and premise data.</p>
         for fi, fn in enumerate(house_field_names):
             ws.column_dimensions[get_column_letter(house_fields_base + fi)].width = max(12, len(fn) + 2)
 
+        # Coordinate columns (LAT, LONG)
+        ws.column_dimensions[get_column_letter(coord_base + 0)].width = 14   # LAT
+        ws.column_dimensions[get_column_letter(coord_base + 1)].width = 14   # LONG
+
         ws.freeze_panes = "A4"
         wb.save(output_path)
         feedback.pushInfo("  Data rows: {}".format(current_row - 4))
@@ -2409,7 +2556,7 @@ per-DJ cable routing, and premise data.</p>
         fj_layer      = self.parameterAsVectorLayer(parameters, self.IN_FJ,      context)
 
         feedback.pushInfo("=" * 60)
-        feedback.pushInfo("FTTH Splicing Plan v8.0 -- Excel output")
+        feedback.pushInfo("FTTH Splicing Plan v8.6.21 -- Excel output")
         feedback.pushInfo("=" * 60)
         feedback.pushInfo("Snap tolerance: {}m".format(snap_tol))
         feedback.pushInfo("")
@@ -2603,8 +2750,12 @@ per-DJ cable routing, and premise data.</p>
         # --- Index DJ Points: {name: {'fid', 'point', 'splitter', 'position', 'dc_name'}} ---
         djs = {}
         djs_by_fid = {}
+        skipped_null_djs = 0
         for feat in dj_layer.getFeatures():
             geom = feat.geometry()
+            if geom.isNull() or geom.isEmpty():
+                skipped_null_djs += 1
+                continue
             pt = geom.asPoint()
             dj_name = str(feat[dj_name_idx] or '')
             splitter = str(feat[dj_splitter_idx] or '') if dj_splitter_idx >= 0 else ''
@@ -2621,13 +2772,19 @@ per-DJ cable routing, and premise data.</p>
             djs[dj_name] = info
             djs_by_fid[feat.id()] = info
         feedback.pushInfo("  Indexed {} DJ points".format(len(djs)))
+        if skipped_null_djs > 0:
+            feedback.pushInfo("  Skipped {} DJ features with null/empty geometry".format(skipped_null_djs))
 
         # --- Index Houses: {fid: {'point', 'name', 'fields'}} ---
         # Store ALL fields from the house layer for Excel output
         house_field_names = [f.name() for f in house_layer.fields()]
         houses = {}
+        skipped_null_houses = 0
         for feat in house_layer.getFeatures():
             geom = feat.geometry()
+            if geom.isNull() or geom.isEmpty():
+                skipped_null_houses += 1
+                continue
             pt = geom.asPoint()
             if house_name_idx >= 0:
                 nm = str(feat[house_name_idx] or '').strip()
@@ -2643,11 +2800,17 @@ per-DJ cable routing, and premise data.</p>
                 'fields': all_fields
             }
         feedback.pushInfo("  Indexed {} house points".format(len(houses)))
+        if skipped_null_houses > 0:
+            feedback.pushInfo("  Skipped {} house features with null/empty geometry".format(skipped_null_houses))
 
         # --- Index Poles: list of {'fid', 'point', 'name'} ---
         poles = []
+        skipped_null_poles = 0
         for feat in pole_layer.getFeatures():
             geom = feat.geometry()
+            if geom.isNull() or geom.isEmpty():
+                skipped_null_poles += 1
+                continue
             pt = geom.asPoint()
             nm = str(feat[pole_name_idx] or '') if pole_name_idx >= 0 else "Pole_{}".format(feat.id())
             poles.append({
@@ -2656,6 +2819,8 @@ per-DJ cable routing, and premise data.</p>
                 'name': nm
             })
         feedback.pushInfo("  Indexed {} poles".format(len(poles)))
+        if skipped_null_poles > 0:
+            feedback.pushInfo("  Skipped {} pole features with null/empty geometry".format(skipped_null_poles))
 
         # --- Index DC lines (for upstream tracing) ---
         dc_by_to = {}   # {to_node_name: {'from': from_node_name, 'dc_name': str}}
@@ -2744,7 +2909,8 @@ per-DJ cable routing, and premise data.</p>
                     dj_to_houses[dj_name].append({
                         'fid': house_fid,
                         'name': house_info['name'],
-                        'fields': house_info.get('fields', {})
+                        'fields': house_info.get('fields', {}),
+                        'point': house_info['point'],
                     })
                     matched = True
                     break
@@ -2824,7 +2990,8 @@ per-DJ cable routing, and premise data.</p>
                         dj_to_houses[dj_name].append({
                             'fid': house_fid,
                             'name': house_info['name'],
-                            'fields': house_info.get('fields', {})
+                            'fields': house_info.get('fields', {}),
+                            'point': house_info['point'],
                         })
                         del unmatched_houses[house_fid]
                         fallback_matched += 1
@@ -2894,6 +3061,13 @@ per-DJ cable routing, and premise data.</p>
         feedback.pushInfo("")
         feedback.pushInfo("[Step 8] Building output rows...")
 
+        # Coordinate transform: layer CRS -> EPSG:4326 (decimal degrees)
+        from qgis.core import QgsCoordinateTransform, QgsCoordinateReferenceSystem
+        layer_crs = house_layer.crs()
+        wgs84 = QgsCoordinateReferenceSystem('EPSG:4326')
+        coord_transform = QgsCoordinateTransform(layer_crs, wgs84, context.project())
+        feedback.pushInfo("  House layer CRS: {} -> transforming to EPSG:4326".format(layer_crs.authid()))
+
         output_rows = []
         row_counter = 0
 
@@ -2920,6 +3094,19 @@ per-DJ cable routing, and premise data.</p>
                 house_list_sorted = sorted(house_list, key=lambda h: h['name'])
                 for h in house_list_sorted:
                     row_counter += 1
+                    # Transform house coordinates to EPSG:4326 (decimal degrees)
+                    h_point = h.get('point', None)
+                    if h_point:
+                        try:
+                            pt_4326 = coord_transform.transform(h_point)
+                            h_lat = round(pt_4326.y(), 8)
+                            h_lon = round(pt_4326.x(), 8)
+                        except Exception:
+                            h_lat = ''
+                            h_lon = ''
+                    else:
+                        h_lat = ''
+                        h_lon = ''
                     output_rows.append({
                         'fid': row_counter,
                         'Name': '',
@@ -2937,6 +3124,8 @@ per-DJ cable routing, and premise data.</p>
                         'ag_name': ag_name,
                         'block': block_name,
                         'house_fields': h.get('fields', {}),
+                        'house_lat': h_lat,
+                        'house_lon': h_lon,
                     })
             else:
                 # DJ has no houses -- still output one row with empty Name_2
@@ -2958,6 +3147,8 @@ per-DJ cable routing, and premise data.</p>
                     'ag_name': ag_name,
                     'block': block_name,
                     'house_fields': {},
+                    'house_lat': '',
+                    'house_lon': '',
                 })
 
         feedback.pushInfo("  Built {} output rows for {} DJs".format(
