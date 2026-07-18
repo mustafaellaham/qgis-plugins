@@ -1,0 +1,10 @@
+[general]
+name=HuaweiSA QODN/Vumatel FTTH Auto Labeler
+qgisMinimumVersion=3.0
+description=Automated FTTH network labeling for AG, Block, FJ, DJ, DC, Pole
+category=Vector
+version=6.8.22
+author=Mustafa M M Ellaham
+email=Mustafaellaham@gmail.com
+tags=ftth, labeling, auto-label, network, telecom, qgis
+about=Automated FTTH network labeling for QGIS. Labels AG Polygons, Block Polygons, FJ Points, DJ Points, DC Lines, and Pole Points with consistent naming conventions. By Mustafa M M Ellaham.

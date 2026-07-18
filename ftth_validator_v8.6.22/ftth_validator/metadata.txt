@@ -1,0 +1,10 @@
+[general]
+name=HuaweiSA QODN/Vumatel QA Cheker
+qgisMinimumVersion=3.0
+description=Pre-flight validation for FTTH network designs
+category=Vector
+version=8.6.22
+author=Mustafa M M Ellaham
+email=Mustafaellaham@gmail.com
+tags=ftth, validation, qa, checker, quality, telecom, qgis
+about=Pre-flight validation tool for FTTH network designs. Checks CRS consistency, required columns, DC-DJ snapping, block-FJ connectivity, DJ-inside-block, and warns about Shapefile/Real position fields. By Mustafa M M Ellaham.
