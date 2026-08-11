@@ -1,0 +1,952 @@
+{
+  "_source": "final calculation methods.xlsx - Badimong_Z01 + Cables options",
+  "_cable_od_table": null,
+  "_od_brackets": {
+    "dead_end": [
+      {
+        "range": [
+          5.5,
+          7.0
+        ],
+        "item": "1524342",
+        "desc": "DEAD-END 5.5-7.0 mm (Mini)"
+      },
+      {
+        "range": [
+          7.5,
+          9.5
+        ],
+        "item": "1524339",
+        "desc": "DEAD-END 7.5-9.5 mm (Slim 8mm)"
+      },
+      {
+        "range": [
+          12.5,
+          14.5
+        ],
+        "item": "1524344",
+        "desc": "DEAD-END 12.5-14.5 mm (Slim 13.6mm)"
+      },
+      {
+        "range": [
+          15.6,
+          17.27
+        ],
+        "item": "1524343",
+        "desc": "DEAD END ADSS 144F 15.60-17.27mm"
+      }
+    ],
+    "tangent": [
+      {
+        "range": [
+          5.5,
+          7.0
+        ],
+        "item": "1524337",
+        "desc": "TANGENT SUPPORT 5.5-7.0 mm"
+      },
+      {
+        "range": [
+          7.5,
+          9.5
+        ],
+        "item": "1524340",
+        "desc": "TANGENT SUPPORT 7.5-9.5 mm"
+      },
+      {
+        "range": [
+          12.5,
+          14.5
+        ],
+        "item": "1524363",
+        "desc": "TANGENT SUPPORT 12.5-14.5 mm"
+      },
+      {
+        "range": [
+          15.11,
+          16.0
+        ],
+        "item": "1524341",
+        "desc": "TANGENT SUPPORT 15.11-16.0mm"
+      }
+    ],
+    "oval": [
+      {
+        "range": [
+          6.0,
+          8.0
+        ],
+        "item": "52345324",
+        "desc": "MECH SEAL OVAL PORT KIT 6.0-8.0MM"
+      },
+      {
+        "range": [
+          8.1,
+          10.0
+        ],
+        "item": "52345271",
+        "desc": "MECH SEAL OVAL KIT 8.1-10.0MM"
+      },
+      {
+        "range": [
+          11.0,
+          13.0
+        ],
+        "item": "52345274",
+        "desc": "MECH SEAL MEDIUM OVAL KIT 11-13MM"
+      },
+      {
+        "range": [
+          12.1,
+          14.0
+        ],
+        "item": "52345326",
+        "desc": "LMJ OVAL PORT KIT 12.1-14MM"
+      },
+      {
+        "range": [
+          14.1,
+          16.0
+        ],
+        "item": "52345323",
+        "desc": "LMJ OVAL PORT KIT 14.1-16MM"
+      }
+    ],
+    "mech_seal": [
+      {
+        "range": [
+          4.0,
+          6.0
+        ],
+        "item": "52345330",
+        "desc": "MECH SEAL CIRCULAR PORT QUAD (4-6MM)"
+      },
+      {
+        "range": [
+          5.0,
+          9.0
+        ],
+        "item": "Item Code to follow",
+        "desc": "MECH SEAL MEDIUM ENTRY GLAND 2w 5.0-9.0mm"
+      },
+      {
+        "range": [
+          7.0,
+          20.0
+        ],
+        "item": "52345302",
+        "desc": "MECH SEAL MEDIUM ENTRY GLAND 7-20MM"
+      }
+    ]
+  },
+  "precon_cables": [
+    50,
+    80,
+    100,
+    120,
+    150,
+    180,
+    200,
+    250,
+    300,
+    350
+  ],
+  "precon_slack_values": [
+    10,
+    9,
+    8,
+    7
+  ],
+  "bom_items": [
+    {
+      "no": 1,
+      "code": "52345312",
+      "desc": "PANEL MFPS-IXD P-SILD-288-(ZAV2) Right",
+      "uom": "SET",
+      "rule": "pop_panel_288",
+      "enabled": true
+    },
+    {
+      "no": 2,
+      "code": "52345313",
+      "desc": "(MK2 Fibre Tray and Face Plate) 1u Empty patch panel Quad faceplate 24 slots",
+      "uom": "SET",
+      "rule": "agg_polygons_div_24",
+      "enabled": true
+    },
+    {
+      "no": 3,
+      "code": "52345311",
+      "desc": "Quad flanged mid couplers LC/APC",
+      "uom": "SET",
+      "rule": "item_52345294_div_2",
+      "enabled": true
+    },
+    {
+      "no": 4,
+      "code": "52345310",
+      "desc": "PLC 1 x 2 SPLITTER WITH LCAPC (PRE-CONNECTED)",
+      "uom": "SET",
+      "rule": "item_52345294_div_2",
+      "enabled": true
+    },
+    {
+      "no": 5,
+      "code": "52345308",
+      "desc": "LC/APC to LC/APC patch cord 3m",
+      "uom": "M",
+      "rule": "same_as_52345294",
+      "enabled": true
+    },
+    {
+      "no": 6,
+      "code": "52345309",
+      "desc": "LC/APC to SC/UPC patch cord 3m",
+      "uom": "M",
+      "rule": "item_52345294_div_2",
+      "enabled": true
+    },
+    {
+      "no": 7,
+      "code": "52345307",
+      "desc": "CABLE 288 CORE Slim-line ADSS",
+      "uom": "M",
+      "rule": "cable_length",
+      "fiber": "288",
+      "enabled": true
+    },
+    {
+      "no": 8,
+      "code": "52345266",
+      "desc": "CABLE 144 CORE ADSS 144F G657.A1 ADSS - 80m span - Black (OD 15.8mm)",
+      "uom": "M",
+      "rule": "cable_length",
+      "fiber": "144",
+      "enabled": true
+    },
+    {
+      "no": 9,
+      "code": "52345294",
+      "desc": "SPLITTER BARE FIBRE 2 WAY",
+      "uom": "EACH",
+      "rule": "bare_splitter_1_2",
+      "enabled": true
+    },
+    {
+      "no": 10,
+      "code": "52345264",
+      "desc": "72 CORE Slim line ADSS Aerial Cable (OD 8.0mm)",
+      "uom": "M",
+      "rule": "cable_length",
+      "fiber": "72",
+      "enabled": true
+    },
+    {
+      "no": 11,
+      "code": "52345263",
+      "desc": "48 CORE Mini ADSS Aerial Cable (OD 6.3mm)",
+      "uom": "M",
+      "rule": "cable_length",
+      "fiber": "48",
+      "enabled": true
+    },
+    {
+      "no": 12,
+      "code": "52345262",
+      "desc": "24 CORE Mini ADSS Aerial Cable (OD 6.3mm)",
+      "uom": "M",
+      "rule": "cable_length",
+      "fiber": "24",
+      "enabled": true
+    },
+    {
+      "no": 13,
+      "code": "52345261",
+      "desc": "12 CORE Mini ADSS Aerial Cable (OD 6.3mm)",
+      "uom": "M",
+      "rule": "cable_length",
+      "fiber": "12",
+      "enabled": true
+    },
+    {
+      "no": 14,
+      "code": "1524339",
+      "desc": "DEAD-END 7.5–9.5 mm (Slim-line ADSS Cable OD 8mm)",
+      "uom": "EACH",
+      "rule": "dead_end",
+      "od": [
+        7.5,
+        9.5
+      ],
+      "enabled": true
+    },
+    {
+      "no": 15,
+      "code": "1524342",
+      "desc": "DEAD-END 5.5–7.0 mm (Mini ADSS Cable OD 5.5mm/6.3mm)",
+      "uom": "EACH",
+      "rule": "dead_end",
+      "od": [
+        5.5,
+        7.0
+      ],
+      "enabled": true
+    },
+    {
+      "no": 16,
+      "code": "1524343",
+      "desc": "DEAD END ADSS 144F 15.60-17.27mm (144F)",
+      "uom": "EACH",
+      "rule": "dead_end",
+      "od": [
+        15.6,
+        17.27
+      ],
+      "enabled": true
+    },
+    {
+      "no": 17,
+      "code": "1524344",
+      "desc": "DEAD-END 12.5–14.5 mm (Slim-line ADSS Cable OD 13.6mm)",
+      "uom": "EACH",
+      "rule": "dead_end",
+      "od": [
+        12.5,
+        14.5
+      ],
+      "enabled": true
+    },
+    {
+      "no": 18,
+      "code": "1524338",
+      "desc": "BRACKET 3 WAY SHORT (HOOK)",
+      "uom": "EACH",
+      "rule": "hooks",
+      "enabled": true
+    },
+    {
+      "no": 19,
+      "code": "1524337",
+      "desc": "TANGENT SUPPORT 5.5–7.0 mm (Mini ADSS Cable OD 5.5mm/6.3mm)",
+      "uom": "EACH",
+      "rule": "tangent",
+      "od": [
+        5.5,
+        7.0
+      ],
+      "enabled": true
+    },
+    {
+      "no": 20,
+      "code": "1524340",
+      "desc": "TANGENT SUPPORT 7.5–9.5 mm (Slim-line ADSS Cable OD 8mm)",
+      "uom": "EACH",
+      "rule": "tangent",
+      "od": [
+        7.5,
+        9.5
+      ],
+      "enabled": true
+    },
+    {
+      "no": 21,
+      "code": "1524341",
+      "desc": "TANGENT SUPPORT 15.11-16.0MM",
+      "uom": "EACH",
+      "rule": "tangent",
+      "od": [
+        15.11,
+        16.0
+      ],
+      "enabled": true
+    },
+    {
+      "no": 22,
+      "code": "1524363",
+      "desc": "TANGENT SUPPORT 12.5–14.5 mm (Slim-line ADSS Cable OD 13.6mm)",
+      "uom": "EACH",
+      "rule": "tangent",
+      "od": [
+        12.5,
+        14.5
+      ],
+      "enabled": true
+    },
+    {
+      "no": 23,
+      "code": "1524335",
+      "desc": "RHI-NODE 1000 MD-STD GLAM (VUMA)",
+      "uom": "EACH",
+      "rule": "core_aggs_count",
+      "enabled": true
+    },
+    {
+      "no": 24,
+      "code": "52345289",
+      "desc": "DOME JOINT LMJ SHORT Cap + 24XSE2.2MM 12F TRAYS",
+      "uom": "SET",
+      "rule": "wizard_lmj",
+      "enabled": true
+    },
+    {
+      "no": 25,
+      "code": "52345290",
+      "desc": "DOME JOINT MMJ SE POLE BRACKETS (with no Entry Seals)",
+      "uom": "SET",
+      "rule": "wizard_mmj",
+      "enabled": true
+    },
+    {
+      "no": 26,
+      "code": "21157587",
+      "desc": "LMJ - WALL / POLE BRACKET - GM",
+      "uom": "EACH",
+      "rule": "wizard_lmj_mmj_on_pole",
+      "enabled": true
+    },
+    {
+      "no": 27,
+      "code": "52345291",
+      "desc": "LMJ SPLITTER TRAY (GREEN TRAYS)",
+      "uom": "EACH",
+      "rule": "blocks_div_4",
+      "enabled": true
+    },
+    {
+      "no": 28,
+      "code": "52345324",
+      "desc": "(MMJ/CMJ/UMJ) MECH SEAL OVAL PORT KIT 7.1MM-9MM",
+      "uom": "EACH",
+      "rule": "oval_port",
+      "od": [
+        7.1,
+        9.0
+      ],
+      "enabled": true
+    },
+    {
+      "no": 29,
+      "code": "52345271",
+      "desc": "MECH SEAL OVAL KIT (MMJ) 9-11MM",
+      "uom": "SET",
+      "rule": "oval_port",
+      "od": [
+        9.0,
+        11.0
+      ],
+      "enabled": true
+    },
+    {
+      "no": 30,
+      "code": "52345274",
+      "desc": "MECH SEAL MEDIUM OVAL KIT 11-13MM",
+      "uom": "SET",
+      "rule": "oval_port",
+      "od": [
+        11.0,
+        13.0
+      ],
+      "enabled": true
+    },
+    {
+      "no": 31,
+      "code": "52345326",
+      "desc": "LMJ OVAL PORT KIT 12.1MM-14MM",
+      "uom": "EACH",
+      "rule": "oval_port",
+      "od": [
+        12.1,
+        14.0
+      ],
+      "enabled": true
+    },
+    {
+      "no": 32,
+      "code": "Item Code to follow",
+      "desc": "MECH SEAL-MEDIUM ENTRY GLAND 2w -5.0 to 9.0mm",
+      "uom": "EACH",
+      "rule": "mech_seal_entry",
+      "od": [
+        5.0,
+        9.0
+      ],
+      "enabled": true
+    },
+    {
+      "no": 33,
+      "code": "52345330",
+      "desc": "MECH SEAL CIRCULAR PORT QUAD (4-6MM)(4 CABLES)",
+      "uom": "EACH",
+      "rule": "mech_seal_entry",
+      "od": [
+        4.0,
+        6.0
+      ],
+      "enabled": true
+    },
+    {
+      "no": 34,
+      "code": "52345302",
+      "desc": "MECH SEAL-MEDIUM ENTRY GLAND 7-20MM (ENTRY PORTS)",
+      "uom": "EACH",
+      "rule": "mech_seal_entry",
+      "od": [
+        7.0,
+        20.0
+      ],
+      "enabled": true
+    },
+    {
+      "no": 35,
+      "code": "52345292",
+      "desc": "JOINT EXT ENCL MICRO (M16) 48F (ENTRY 5-12mm) (DROP 2-6mm)",
+      "uom": "EACH",
+      "rule": "m16_count",
+      "enabled": true
+    },
+    {
+      "no": 36,
+      "code": "52345276",
+      "desc": "M8 MICROLOOP 24F JOINT (Entry 6-9mm)3-4.5mm Drop",
+      "uom": "EACH",
+      "rule": "m8_count",
+      "enabled": true
+    },
+    {
+      "no": 37,
+      "code": "52345293",
+      "desc": "M 8/M16 UNIVERSAL BRACKET M-RANGE - BLACK",
+      "uom": "EACH",
+      "rule": "m8_plus_m16",
+      "enabled": true
+    },
+    {
+      "no": 38,
+      "code": "1524345",
+      "desc": "V SHAPE SLACK BRACKET",
+      "uom": "EACH",
+      "rule": "agg_polygons_count",
+      "enabled": true
+    },
+    {
+      "no": 39,
+      "code": "1524346",
+      "desc": "AERIAL SLACK STORAGE BRACKET (BLK)",
+      "uom": "EACH",
+      "rule": "manual",
+      "enabled": false
+    },
+    {
+      "no": 40,
+      "code": "52401685",
+      "desc": "SUB DUCT 40/34MM BLACK",
+      "uom": "EACH",
+      "rule": "manual",
+      "enabled": false
+    },
+    {
+      "no": 41,
+      "code": "52400888",
+      "desc": "DUCT RIPPLE 110MM - (6M LENGTH)",
+      "uom": "M",
+      "rule": "manual",
+      "enabled": false
+    },
+    {
+      "no": 42,
+      "code": "52401686",
+      "desc": "114MM X 2MM HALF ROUND PIPE 3M",
+      "uom": "EACH",
+      "rule": "manual",
+      "enabled": false
+    },
+    {
+      "no": 43,
+      "code": "21157583",
+      "desc": "Gum Pole CCA 9m (120/140) SANS 754",
+      "uom": "EACH",
+      "rule": "poles_9m",
+      "enabled": true
+    },
+    {
+      "no": 44,
+      "code": "52235407",
+      "desc": "TRANS GUM POLES (CCA) 7M (120/140)",
+      "uom": "EACH",
+      "rule": "poles_7m",
+      "enabled": true
+    },
+    {
+      "no": 45,
+      "code": "21157582",
+      "desc": "TRANS GUM POLES (CCA) 6M (100/120)",
+      "uom": "EACH",
+      "rule": "poles_6m",
+      "enabled": true
+    },
+    {
+      "no": 46,
+      "code": "1524352",
+      "desc": "VINYL CARTRIDGE (BLACK ON YELLOW) 9.53MM",
+      "uom": "EACH",
+      "rule": "premises_div_52",
+      "enabled": true
+    },
+    {
+      "no": 47,
+      "code": "21123886",
+      "desc": "BANDIT S/STEEL STRAP 19mm (30M)",
+      "uom": "EACH",
+      "rule": "bandit_strap",
+      "enabled": true
+    },
+    {
+      "no": 48,
+      "code": "21123884",
+      "desc": "BANDIT S/STEEL BUCKLES 19mm",
+      "uom": "EACH",
+      "rule": "bandit_buckle",
+      "enabled": true
+    },
+    {
+      "no": 49,
+      "code": "21157590",
+      "desc": "COMPACT JOINT POLE FIXING KIT",
+      "uom": "EACH",
+      "rule": "manual",
+      "enabled": false
+    },
+    {
+      "no": 50,
+      "code": "52345328",
+      "desc": "VUMA - MID COUPLER LC/APC",
+      "uom": "EACH",
+      "rule": "manual",
+      "enabled": false
+    },
+    {
+      "no": 51,
+      "code": "52345345",
+      "desc": "Man hole dome joint arm bracket",
+      "uom": "EACH",
+      "rule": "core_aggs_count",
+      "enabled": true
+    },
+    {
+      "no": 52,
+      "code": "14261299",
+      "desc": "FastConnect FAT 1:8",
+      "uom": "EACH",
+      "rule": "dj_1_8_count",
+      "enabled": true
+    },
+    {
+      "no": 53,
+      "code": "14261298",
+      "desc": "FastConnect FAT 1:9",
+      "uom": "EACH",
+      "rule": "dj_1_9_count",
+      "enabled": true
+    },
+    {
+      "no": 54,
+      "code": "52343655",
+      "desc": "FastConnect closure SSC2802-TM-8",
+      "uom": "EACH",
+      "rule": "agg_polygons_count",
+      "enabled": true
+    },
+    {
+      "no": 55,
+      "code": "14137938-010",
+      "desc": "Pre-terminated cable Fastconnect SC/APC 400m 1core",
+      "uom": "EACH",
+      "rule": "precon",
+      "length": 400,
+      "enabled": true
+    },
+    {
+      "no": 56,
+      "code": "14137938",
+      "desc": "Pre-terminated cable Fastconnect SC/APC 50m 1core",
+      "uom": "EACH",
+      "rule": "precon",
+      "length": 50,
+      "enabled": true
+    },
+    {
+      "no": 57,
+      "code": "14137938-001",
+      "desc": "Pre-terminated cable Fastconnect SC/APC 80m 1core",
+      "uom": "EACH",
+      "rule": "precon",
+      "length": 80,
+      "enabled": true
+    },
+    {
+      "no": 58,
+      "code": "14137938-002",
+      "desc": "Pre-terminated cable Fastconnect SC/APC 100m 1core",
+      "uom": "EACH",
+      "rule": "precon",
+      "length": 100,
+      "enabled": true
+    },
+    {
+      "no": 59,
+      "code": "14137938-003",
+      "desc": "Pre-terminated cable Fastconnect SC/APC 120m 1core",
+      "uom": "EACH",
+      "rule": "precon",
+      "length": 120,
+      "enabled": true
+    },
+    {
+      "no": 60,
+      "code": "14137938-004",
+      "desc": "Pre-terminated cable Fastconnect SC/APC 150m 1core",
+      "uom": "EACH",
+      "rule": "precon",
+      "length": 150,
+      "enabled": true
+    },
+    {
+      "no": 61,
+      "code": "14137938-005",
+      "desc": "Pre-terminated cable Fastconnect SC/APC 180m 1core",
+      "uom": "EACH",
+      "rule": "precon",
+      "length": 180,
+      "enabled": true
+    },
+    {
+      "no": 62,
+      "code": "14137938-006",
+      "desc": "Pre-terminated cable Fastconnect SC/APC 200m 1core",
+      "uom": "EACH",
+      "rule": "precon",
+      "length": 200,
+      "enabled": true
+    },
+    {
+      "no": 63,
+      "code": "14137938-007",
+      "desc": "Pre-terminated cable Fastconnect SC/APC 250m 1core",
+      "uom": "EACH",
+      "rule": "precon",
+      "length": 250,
+      "enabled": true
+    },
+    {
+      "no": 64,
+      "code": "14137938-008",
+      "desc": "Pre-terminated cable Fastconnect SC/APC 300m 1core",
+      "uom": "EACH",
+      "rule": "precon",
+      "length": 300,
+      "enabled": true
+    },
+    {
+      "no": 65,
+      "code": "14137938-009",
+      "desc": "Pre-terminated cable Fastconnect SC/APC 350m 1core",
+      "uom": "EACH",
+      "rule": "precon",
+      "length": 350,
+      "enabled": true
+    },
+    {
+      "no": 66,
+      "code": "21150804",
+      "desc": "HUAWEI Pole mounting assembly-For diameter 114~381mm",
+      "uom": "EACH",
+      "rule": "pole_assembly",
+      "enabled": true
+    },
+    {
+      "no": 67,
+      "code": "52590888",
+      "desc": "Plastic wedge clamping tool ITC3102-A1",
+      "uom": "EACH",
+      "rule": "wedges",
+      "enabled": true
+    },
+    {
+      "no": 68,
+      "code": "52590160",
+      "desc": "Plum ring hook ITC3301-P1",
+      "uom": "EACH",
+      "rule": "plum_hooks",
+      "enabled": true
+    },
+    {
+      "no": 69,
+      "code": "14261388",
+      "desc": "Plastic cable storing assembley ITC2102-P2",
+      "uom": "EACH",
+      "rule": "dj_count",
+      "enabled": true
+    },
+    {
+      "no": 70,
+      "code": "14137562",
+      "desc": "Pigtail SC/APC G.652D 0.9mm 1.5m LSZH",
+      "uom": "EACH",
+      "rule": "blocks_count",
+      "enabled": true
+    }
+  ],
+  "_cable_options": [
+    {
+      "fiber": "12",
+      "type": "Mini",
+      "od": 6.3,
+      "supplier": "AMHT",
+      "oval_range": [
+        6.0,
+        8.0
+      ],
+      "circular_range": [
+        5.0,
+        9.0
+      ],
+      "ports": 2,
+      "label": "Mini (OD 6.3mm, AMHT)"
+    },
+    {
+      "fiber": "24",
+      "type": "Mini",
+      "od": 6.3,
+      "supplier": "AMHT",
+      "oval_range": [
+        6.0,
+        8.0
+      ],
+      "circular_range": [
+        5.0,
+        9.0
+      ],
+      "ports": 2,
+      "label": "Mini (OD 6.3mm, AMHT)"
+    },
+    {
+      "fiber": "48",
+      "type": "Mini",
+      "od": 6.3,
+      "supplier": "AMHT",
+      "oval_range": [
+        6.0,
+        8.0
+      ],
+      "circular_range": [
+        5.0,
+        9.0
+      ],
+      "ports": 2,
+      "label": "Mini (OD 6.3mm, AMHT)"
+    },
+    {
+      "fiber": "72",
+      "type": "Slim",
+      "od": 8.0,
+      "supplier": "AMHT",
+      "oval_range": [
+        6.0,
+        8.0
+      ],
+      "circular_range": [
+        5.0,
+        9.0
+      ],
+      "ports": 2,
+      "label": "Slim (OD 8.0mm, AMHT)"
+    },
+    {
+      "fiber": "72",
+      "type": "Micro Blown",
+      "od": 5.4,
+      "supplier": "AMHT",
+      "oval_range": null,
+      "circular_range": [
+        4.0,
+        6.0
+      ],
+      "ports": 4,
+      "label": "Micro Blown (OD 5.4mm, AMHT)"
+    },
+    {
+      "fiber": "96",
+      "type": "Slim",
+      "od": 9.7,
+      "supplier": "AMHT",
+      "oval_range": [
+        8.1,
+        10.0
+      ],
+      "circular_range": [
+        7.0,
+        20.0
+      ],
+      "ports": 1,
+      "label": "Slim (OD 9.7mm, AMHT)"
+    },
+    {
+      "fiber": "144",
+      "type": "Slim",
+      "od": 15.8,
+      "supplier": "YOA",
+      "oval_range": [
+        14.1,
+        16.0
+      ],
+      "circular_range": [
+        7.0,
+        20.0
+      ],
+      "ports": 1,
+      "label": "Slim (OD 15.8mm, YOA)"
+    },
+    {
+      "fiber": "144",
+      "type": "Slim",
+      "od": 12.2,
+      "supplier": "AMHT",
+      "oval_range": null,
+      "circular_range": null,
+      "ports": null,
+      "label": "Slim (OD 12.2mm, AMHT)"
+    },
+    {
+      "fiber": "144",
+      "type": "Micro Blown",
+      "od": 8.0,
+      "supplier": "YOA",
+      "oval_range": [
+        6.0,
+        8.0
+      ],
+      "circular_range": [
+        5.0,
+        9.0
+      ],
+      "ports": 2,
+      "label": "Micro Blown (OD 8.0mm, YOA)"
+    },
+    {
+      "fiber": "288",
+      "type": "Slim",
+      "od": 13.6,
+      "supplier": "YOA",
+      "oval_range": [
+        12.1,
+        14.0
+      ],
+      "circular_range": [
+        7.0,
+        20.0
+      ],
+      "ports": 2,
+      "label": "Slim (OD 13.6mm, YOA)"
+    }
+  ]
+}
