@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-"""FTTH BOM Generator v2.6 — Cable options, length rule, tangents, oval/mech proof."""
+"""FTTH BOM Generator v2.6.1 — CRS-safe geometry: works with EPSG:4326 and mixed-CRS projects."""
 
 import os, json, math, re
 from datetime import datetime
 from collections import defaultdict
 from qgis.PyQt.QtWidgets import QAction, QMessageBox
-from qgis.core import QgsProject, QgsGeometry, QgsPointXY
+from qgis.core import (QgsProject, QgsGeometry, QgsPointXY,
+                       QgsCoordinateTransform, QgsCoordinateReferenceSystem)
 from qgis.utils import iface
 import openpyxl
 
@@ -37,6 +38,32 @@ def _best_precon(length):
                 break
     return best if best else (None, None, None)
 
+def _pick_work_crs(layers):
+    """Return a metric CRS for all geometry math.
+    Uses the project CRS when it is projected (meters); otherwise derives the
+    correct UTM zone from the data extent center (works for EPSG:4326 layers)."""
+    pcrs = QgsProject.instance().crs()
+    if pcrs.isValid() and not pcrs.isGeographic():
+        return pcrs
+    wgs = QgsCoordinateReferenceSystem("EPSG:4326")
+    lon = lat = None
+    for l in layers:
+        if not l: continue
+        ext = l.extent()
+        if ext.isEmpty(): continue
+        try:
+            xt = QgsCoordinateTransform(l.crs(), wgs, QgsProject.instance())
+            c = xt.transform(ext.center())
+            lon, lat = c.x(), c.y()
+            break
+        except Exception:
+            continue
+    if lon is None:
+        return wgs  # no usable extent — fall back (legacy behavior)
+    zone = int((lon + 180.0) / 6.0) + 1
+    epsg = (32700 if lat < 0 else 32600) + zone
+    return QgsCoordinateReferenceSystem(f"EPSG:{epsg}")
+
 
 class BOMGeneratorV2b:
     def __init__(self, iface):
@@ -47,6 +74,8 @@ class BOMGeneratorV2b:
         self.wiz = {}
         self.v = {}
         self.warnings = []
+        self._work_crs = None
+        self._xforms = {}
 
     def load_config(self):
         with open(os.path.join(self.plugin_dir, 'bom_rules.json'), 'r') as f:
@@ -63,6 +92,34 @@ class BOMGeneratorV2b:
     def _L(self, role): return self.layer_map.get(role)
     def _FC(self, role):
         l = self._L(role); return l.featureCount() if l else 0
+
+    # ════════════════════════════════════════════════════════
+    #  CRS-SAFE GEOMETRY — all distance/intersect/length math
+    #  is done in a metric working CRS (meters).
+    # ════════════════════════════════════════════════════════
+    def _init_geo(self):
+        layers = [l for l in self.layer_map.values() if l]
+        self._work_crs = _pick_work_crs(layers)
+        self._xforms = {}
+        pcrs = QgsProject.instance().crs()
+        if pcrs.isGeographic() or any(l.crs() != self._work_crs for l in layers):
+            self.warnings.append(
+                f"CRS NOTE: geometry math reprojected to {self._work_crs.authid()} (meters)")
+
+    def _g(self, layer, geom):
+        """Transform a geometry into the metric working CRS."""
+        if geom is None or geom.isNull(): return geom
+        if not self._work_crs or not self._work_crs.isValid(): return geom
+        crs = layer.crs()
+        if crs == self._work_crs: return geom
+        key = crs.authid()
+        xt = self._xforms.get(key)
+        if xt is None:
+            xt = QgsCoordinateTransform(crs, self._work_crs, QgsProject.instance())
+            self._xforms[key] = xt
+        g = QgsGeometry(geom)
+        g.transform(xt)
+        return g
 
     # ════════════════════════════════════════════════════════
     #  get_od — SINGLE SOURCE OF TRUTH
@@ -112,6 +169,7 @@ class BOMGeneratorV2b:
         dlg_map = LayerMappingDialog(self.iface)
         if not dlg_map.exec_(): return
         self.layer_map = dlg_map.get_mapping()
+        self._init_geo()
 
         # Phase 1: base counts + cable scan (lengths only)
         self._base_counts()
@@ -223,15 +281,15 @@ class BOMGeneratorV2b:
     def _hardware_all(self):
         brackets = self.config.get('_od_brackets', {})
 
-        # Load poles once
+        # Load poles once (transformed to metric working CRS)
         pole_geoms = []
         l = self._L('Poles')
         if l:
             for f in l.getFeatures():
                 g = f.geometry()
-                if g and not g.isNull(): pole_geoms.append((f['Name'] or '', g))
+                if g and not g.isNull(): pole_geoms.append((f['Name'] or '', self._g(l, g)))
 
-        # Collect conventional cables
+        # Collect conventional cables (transformed to metric working CRS)
         conventional = []
         for role in ['core_cable','Feeder','links']:
             l = self._L(role)
@@ -246,7 +304,7 @@ class BOMGeneratorV2b:
                 if od == 0:
                     self.warnings.append(f"ITEM NOT FOUND: no cable option for {name[:60]} ({fiber}F)")
                     continue
-                conventional.append((name, fiber, opt, od, g, role))
+                conventional.append((name, fiber, opt, od, self._g(l, g), role))
 
         # ── Dead ends + tangents + hooks ──
         dead_ends = defaultdict(int)
@@ -299,7 +357,7 @@ class BOMGeneratorV2b:
         # Default = ALL cables Terminated → all get round glands (mech seals).
         # Ovals come ONLY from user-ticked Express checkboxes in Tab 4.
         # Each ticked Express cable = 1 oval kit sized by its OD.
-        
+
         if express:
             # User ticked Express in Tab 4 for specific cables.
             for key, is_express in express.items():
@@ -314,7 +372,7 @@ class BOMGeneratorV2b:
                 if is_express:
                     b = _bracket(od, brackets.get('oval', []))
                     if b: oval[b] += 1
-        
+
         # ALL cables (conventional, at manholes) = Terminated by default → glands.
         # Count one gland per cable-MH connection, UNLESS the cable was ticked Express.
         express_keys = set()
@@ -326,6 +384,7 @@ class BOMGeneratorV2b:
             for f in ca_layer.getFeatures():
                 mh_geom = f.geometry()
                 if not mh_geom or mh_geom.isNull(): continue
+                mh_geom = self._g(ca_layer, mh_geom)
                 if mh_geom.type() == 2: mh_geom = mh_geom.centroid()
                 for name, fiber, opt, od, g, role in conventional:
                     if g.distance(mh_geom) <= 10:
@@ -347,7 +406,7 @@ class BOMGeneratorV2b:
         if l:
             for f in l.getFeatures():
                 g = f.geometry()
-                if g and not g.isNull(): pole_geoms.append((f['Name'] or '', g))
+                if g and not g.isNull(): pole_geoms.append((f['Name'] or '', self._g(l, g)))
 
         l = self._L('Distribution')
         total_pass = dc_touch = 0; plum_set = set()
@@ -355,6 +414,7 @@ class BOMGeneratorV2b:
             for f in l.getFeatures():
                 g = f.geometry()
                 if not g or g.isNull(): continue
+                g = self._g(l, g)
                 n = sum(1 for _, pg in pole_geoms if g.intersects(pg))
                 if n > 0:
                     total_pass += n; dc_touch += 1
@@ -373,12 +433,14 @@ class BOMGeneratorV2b:
         pop_geom = None
         for f in pop_layer.getFeatures():
             g = f.geometry()
-            if g and not g.isNull():
-                pop_geom = g.centroid() if g.type()==2 else g; break
+            if not g or g.isNull(): continue
+            g = self._g(pop_layer, g)
+            pop_geom = g.centroid() if g.type()==2 else g; break
         if not pop_geom: return
         for f in core_layer.getFeatures():
             g = f.geometry()
             if not g or g.isNull(): continue
+            g = self._g(core_layer, g)
             fiber = _pf(f['Name'] or '')
             if fiber in ('288','144') and g.distance(pop_geom) <= 5:
                 self.v[f'pop_{fiber}'] = self.v.get(f'pop_{fiber}',0) + 1
@@ -404,7 +466,7 @@ class BOMGeneratorV2b:
             if _pf(name) != '1': continue
             # Use name-pattern length (YYYY) for precon input
             yyyy = self._name_length(name)
-            length = yyyy if yyyy else (f.geometry().length() if f.geometry() and not f.geometry().isNull() else 0)
+            length = yyyy if yyyy else (self._g(l, f.geometry()).length() if f.geometry() and not f.geometry().isNull() else 0)
             if length <= 0: continue
             _, cable, _ = _best_precon(length)
             if cable: counts[cable] += 1
@@ -505,4 +567,3 @@ class BOMGeneratorV2b:
             audit.cell(row=i,column=1,value=k); audit.cell(row=i,column=2,value=str(val))
 
         wb.save(out)
-        QMessageBox.information(self.iface.mainWindow(), "BOM Generated", f"Saved: {out}")

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Wizard v2.6 — Multi-option dropdowns from _cable_options list."""
+"""Wizard v2.6.1 — Multi-option dropdowns from _cable_options list; CRS-safe Tab 4 matrix."""
 
 import re, math
 from collections import defaultdict
@@ -180,15 +180,16 @@ class WizardDialogV2b(QDialog):
                 opt = self.gen._get_od_full(name, fiber)
                 od = opt.get('od', 0)
                 if od == 0: continue
-                all_cables.append((name, fiber, opt, od, g, role))
+                all_cables.append((name, fiber, opt, od, self.gen._g(l, g), role))
 
         self._tab4_express = {}
-        DIST = 10.0
+        DIST = 10.0  # meters (geometries are in the metric working CRS)
 
         mh_list = []
         for f in ca_layer.getFeatures():
             g = f.geometry()
             if not g or g.isNull(): continue
+            g = self.gen._g(ca_layer, g)
             if g.type() == 2: g = g.centroid()
             mh_list.append((f['Name'] or f"MH_{f.id()}", g))
 
