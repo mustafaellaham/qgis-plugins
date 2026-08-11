@@ -1,9 +1,9 @@
 [general]
 name=FTTH BOM Generator v2
-email=
-author=FTTH Team
+author=Mustafa M M Ellaham
+email=Mustafaellaham@gmail.com
 qgisMinimumVersion=3.16
-description=Automatic FTTH BOM generator: scan cables, classify by OD, compute dead-ends/tangents/hooks, precon optimizer, export Excel.
+description=Automatic FTTH BOM generator: scan cables, classify by OD, compute dead-ends/tangents/hooks, precon optimizer, export Excel. By Mustafa M M Ellaham.
 about=Step 0 - Map layers to BOM roles (no renaming). Step 1 - Project info. Step 2 - Cable Scanner. Step 3 - Joint counts. Step 4 - Cable-Joint Matrix. Export BOM Excel with audit sheet.
 version=2.6.0
 category=Vector
