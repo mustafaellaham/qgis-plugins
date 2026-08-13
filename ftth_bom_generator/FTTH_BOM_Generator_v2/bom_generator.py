@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""FTTH BOM Generator v2.6.1 — CRS-safe geometry: works with EPSG:4326 and mixed-CRS projects."""
+"""FTTH BOM Generator v2.7 — Save-As dialog, template pool export, no-bracket warnings, CRS-safe."""
 
 import os, json, math, re
 from datetime import datetime
@@ -76,6 +76,7 @@ class BOMGeneratorV2b:
         self.warnings = []
         self._work_crs = None
         self._xforms = {}
+        self._nb_seen = set()
 
     def load_config(self):
         with open(os.path.join(self.plugin_dir, 'bom_rules.json'), 'r') as f:
@@ -120,6 +121,16 @@ class BOMGeneratorV2b:
         g = QgsGeometry(geom)
         g.transform(xt)
         return g
+
+    # ════════════════════════════════════════════════════════
+    #  NO-BRACKET WARNING — OD with no matching hardware bracket
+    #  must surface as ITEM NOT FOUND, never skip silently.
+    # ════════════════════════════════════════════════════════
+    def _nb_warn(self, kind, fiber, od):
+        key = (kind, fiber, od)
+        if key in self._nb_seen: return
+        self._nb_seen.add(key)
+        self.warnings.append(f"ITEM NOT FOUND: no {kind} bracket for OD {od}mm ({fiber}F)")
 
     # ════════════════════════════════════════════════════════
     #  get_od — SINGLE SOURCE OF TRUTH
@@ -337,12 +348,14 @@ class BOMGeneratorV2b:
                     if ang <= 20.0:
                         b = _bracket(od, brackets.get('tangent',[]))
                         if b: tangents[b] += 1
+                        else: self._nb_warn('tangent', fiber, od)
 
             # Dead ends: every pole-pass
             for i in range(n):
                 de = 1 if (i==0 or i==n-1) else 2
                 b = _bracket(od, brackets.get('dead_end',[]))
                 if b: dead_ends[b] += de
+                else: self._nb_warn('dead_end', fiber, od)
 
         self.v['dead_ends'] = dict(dead_ends)
         self.v['tangents'] = dict(tangents)
@@ -372,6 +385,7 @@ class BOMGeneratorV2b:
                 if is_express:
                     b = _bracket(od, brackets.get('oval', []))
                     if b: oval[b] += 1
+                    else: self._nb_warn('oval_port', fiber, od)
 
         # ALL cables (conventional, at manholes) = Terminated by default → glands.
         # Count one gland per cable-MH connection, UNLESS the cable was ticked Express.
@@ -393,6 +407,7 @@ class BOMGeneratorV2b:
                             continue
                         b = _bracket(od, brackets.get('mech_seal', []))
                         if b: gland[b] += 1
+                        else: self._nb_warn('mech_seal', fiber, od)
 
         self.v['oval_ports'] = dict(oval)
         self.v['mech_seals'] = dict(gland)
@@ -538,11 +553,95 @@ class BOMGeneratorV2b:
             f"Cable lengths (Qty=ROUNDUP(SUM×1.05)): {dict((k,f'{v}m') for k,v in v.get('cable_lengths',{}).items())}",
         ])
 
+    # ════════════════════════════════════════════════════════
+    #  EXPORT — Save-As dialog + template pool export + crash-proof
+    #  Template = master item pool (same rows every time, only Qty differs).
+    #  Match by item CODE only. Qty 0 / unused → cell stays BLANK.
+    # ════════════════════════════════════════════════════════
     def _export(self):
+        from qgis.PyQt.QtWidgets import QFileDialog
+        from qgis.PyQt.QtCore import QSettings
         proj = (self.wiz.get('project_name') or 'Project').replace(' ','_')
         dt = datetime.now().strftime('%Y%m%d')
-        out = os.path.join(os.path.expanduser("~/Desktop"), f"{proj}_BOM_{dt}.xlsx")
+        suggested = f"{proj}_BOM_{dt}.xlsx"
+        last_dir = QSettings().value('ftth_bom/last_export_dir',
+                                     os.path.join(os.path.expanduser('~'), 'Desktop'))
+        out, _ = QFileDialog.getSaveFileName(self.iface.mainWindow(), "Save BOM As",
+                                             os.path.join(last_dir, suggested),
+                                             "Excel Workbook (*.xlsx)")
+        if not out: return
+        QSettings().setValue('ftth_bom/last_export_dir', os.path.dirname(out))
+        try:
+            tpl = os.path.join(self.plugin_dir, 'bom_template.xlsx')
+            if os.path.exists(tpl):
+                notes = self._export_from_template(tpl, out, dt)
+            else:
+                self._export_plain(out, dt)
+                notes = ["Template bom_template.xlsx not found in plugin folder — used plain export."]
+        except Exception as e:
+            QMessageBox.critical(self.iface.mainWindow(), "Export failed",
+                                 f"Could not save the BOM file:\n\n{e}")
+            return
+        msg = f"BOM saved to:\n{out}"
+        if notes:
+            msg += "\n\nNOTES:\n" + "\n".join(f"  {n}" for n in notes[:25])
+        QMessageBox.information(self.iface.mainWindow(), "BOM Export", msg)
 
+    def _export_from_template(self, tpl, out, dt):
+        """Fill the Vumatel template: header fields + Qty column, matched by item code.
+        Every template row stays (pool); unused/zero items keep a BLANK Qty cell."""
+        by_code = {}
+        for it in self.config['bom_items']:
+            by_code[str(it.get('code','')).strip()] = it
+
+        wb = openpyxl.load_workbook(tpl)
+        ws = wb['BOM'] if 'BOM' in wb.sheetnames else wb.active
+        ws['B4'] = self.wiz.get('customer','')
+        ws['B5'] = self.wiz.get('project_name','')
+        ws['B6'] = self.wiz.get('project_code','')
+        ws['B7'] = dt
+
+        notes = []
+        used_codes = set()
+        for row in range(10, ws.max_row + 1):
+            raw = ws.cell(row=row, column=1).value
+            if raw is None: continue
+            code = str(raw).strip()
+            if code.endswith('.0'): code = code[:-2]
+            if not code or not code[0].isdigit(): continue  # section header rows
+            it = by_code.get(code)
+            if it is None:
+                notes.append(f"ITEM NOT FOUND: {code} — {str(ws.cell(row=row,column=2).value)[:45]}")
+                continue
+            used_codes.add(code)
+            ws.cell(row=row, column=5, value=it.get('rule',''))
+            if not it.get('enabled', True): continue
+            qty = self._compute(it)
+            if qty:
+                ws.cell(row=row, column=3, value=qty)
+
+        # Safety net: enabled JSON item with qty>0 but missing from the template pool
+        for it in self.config['bom_items']:
+            code = str(it.get('code','')).strip()
+            if code in used_codes or not it.get('enabled', True): continue
+            try: qty = self._compute(it)
+            except Exception: qty = 0
+            if qty:
+                notes.append(f"NOT IN TEMPLATE: {code} — {it.get('desc','')[:40]} (qty={qty}) — add a row to bom_template.xlsx")
+
+        # Refresh the audit sheet
+        audit = wb['Calculation_Audit'] if 'Calculation_Audit' in wb.sheetnames else wb.create_sheet('Calculation_Audit')
+        if audit.max_row > 1:
+            audit.delete_rows(1, audit.max_row)
+        audit['A1']='Variable'; audit['B1']='Value'
+        for i,(k,val) in enumerate(sorted(self.v.items()),2):
+            audit.cell(row=i,column=1,value=k); audit.cell(row=i,column=2,value=str(val))
+
+        wb.save(out)
+        return notes
+
+    def _export_plain(self, out, dt):
+        """Legacy fallback export (no template present)."""
         wb = openpyxl.Workbook(); ws = wb.active; ws.title = "BOM"
         ws['A1']='Customer:'; ws['B1']=self.wiz.get('customer','')
         ws['A2']='Project:'; ws['B2']=self.wiz.get('project_name','')
@@ -555,7 +654,7 @@ class BOMGeneratorV2b:
             qty = self._compute(item)
             ws.cell(row=row,column=1,value=item.get('code',''))
             ws.cell(row=row,column=2,value=item.get('desc',''))
-            ws.cell(row=row,column=3,value=qty)
+            ws.cell(row=row,column=3,value=qty if qty else None)
             ws.cell(row=row,column=4,value=item.get('uom',''))
             ws.cell(row=row,column=5,value=item.get('rule',''))
             row += 1

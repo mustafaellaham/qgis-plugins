@@ -74,10 +74,18 @@
       {
         "range": [
           6.0,
-          8.0
+          7.0
+        ],
+        "item": "52345341",
+        "desc": "LMJ OVAL PORT KIT 6MM-8MM"
+      },
+      {
+        "range": [
+          7.1,
+          9.0
         ],
         "item": "52345324",
-        "desc": "MECH SEAL OVAL PORT KIT 6.0-8.0MM"
+        "desc": "(MMJ/CMJ/UMJ) MECH SEAL OVAL PORT KIT 7.1MM-9MM"
       },
       {
         "range": [
@@ -421,6 +429,17 @@
       "od": [
         7.1,
         9.0
+      ],
+      "enabled": true
+    },
+    {
+      "code": "52345341",
+      "desc": "LMJ OVAL PORT KIT 6MM-8MM",
+      "uom": "EACH",
+      "rule": "oval_port",
+      "od": [
+        6.0,
+        7.0
       ],
       "enabled": true
     },

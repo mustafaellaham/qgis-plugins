@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Wizard v2.6.1 — Multi-option dropdowns from _cable_options list; CRS-safe Tab 4 matrix."""
+"""Wizard v2.7 — Project Code field; multi-option dropdowns; CRS-safe Tab 4."""
 
 import re, math
 from collections import defaultdict
@@ -30,8 +30,9 @@ class WizardDialogV2b(QDialog):
 
         t1 = QWidget(); v1 = QVBoxLayout(t1)
         v1.addWidget(QLabel("<b>Project Information</b>"))
-        self.proj_name = QLineEdit(); self.customer = QLineEdit()
+        self.proj_name = QLineEdit(); self.proj_code = QLineEdit(); self.customer = QLineEdit()
         v1.addWidget(QLabel("Project Name:")); v1.addWidget(self.proj_name)
+        v1.addWidget(QLabel("Project Code:")); v1.addWidget(self.proj_code)
         v1.addWidget(QLabel("Customer:")); v1.addWidget(self.customer)
         v1.addStretch(); self.tabs.addTab(t1, "1. Project Info")
 
@@ -256,6 +257,7 @@ class WizardDialogV2b(QDialog):
     def get_answers(self):
         a = {
             'project_name': self.proj_name.text(),
+            'project_code': self.proj_code.text(),
             'customer': self.customer.text(),
             'cable_option_indices': {},
             'joint_type_counts': {'LMJ': 0, 'MMJ': 0, 'ODC FD4': 0, 'ODC FD6': 0},
