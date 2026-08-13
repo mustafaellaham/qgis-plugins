@@ -126,8 +126,8 @@
           5.0,
           9.0
         ],
-        "item": "Item Code to follow",
-        "desc": "MECH SEAL MEDIUM ENTRY GLAND 2w 5.0-9.0mm"
+        "item": "52345363",
+        "desc": "MECH SEAL-MEDIUM ENTRY GLAND 2w -5.0 to 9.0mm"
       },
       {
         "range": [
@@ -799,6 +799,36 @@
   "_cable_options": [
     {
       "fiber": "12",
+      "type": "Standard",
+      "od": 8.4,
+      "supplier": null,
+      "oval_range": null,
+      "circular_range": null,
+      "ports": null,
+      "label": "Standard ADSS (OD 8.4mm)"
+    },
+    {
+      "fiber": "12",
+      "type": "Standard",
+      "od": 9.6,
+      "supplier": null,
+      "oval_range": null,
+      "circular_range": null,
+      "ports": null,
+      "label": "Standard ADSS (OD 9.6mm)"
+    },
+    {
+      "fiber": "12",
+      "type": "Slim",
+      "od": 8.0,
+      "supplier": null,
+      "oval_range": null,
+      "circular_range": null,
+      "ports": null,
+      "label": "Slimline ADSS (OD 8.0mm)"
+    },
+    {
+      "fiber": "12",
       "type": "Mini",
       "od": 6.3,
       "supplier": "AMHT",
@@ -811,7 +841,37 @@
         9.0
       ],
       "ports": 2,
-      "label": "Mini (OD 6.3mm, AMHT)"
+      "label": "Mini ADSS (OD 6.3mm)"
+    },
+    {
+      "fiber": "24",
+      "type": "Standard",
+      "od": 8.4,
+      "supplier": null,
+      "oval_range": null,
+      "circular_range": null,
+      "ports": null,
+      "label": "Standard ADSS (OD 8.4mm)"
+    },
+    {
+      "fiber": "24",
+      "type": "Standard",
+      "od": 9.6,
+      "supplier": null,
+      "oval_range": null,
+      "circular_range": null,
+      "ports": null,
+      "label": "Standard ADSS (OD 9.6mm)"
+    },
+    {
+      "fiber": "24",
+      "type": "Slim",
+      "od": 8.0,
+      "supplier": null,
+      "oval_range": null,
+      "circular_range": null,
+      "ports": null,
+      "label": "Slimline ADSS (OD 8.0mm)"
     },
     {
       "fiber": "24",
@@ -827,7 +887,37 @@
         9.0
       ],
       "ports": 2,
-      "label": "Mini (OD 6.3mm, AMHT)"
+      "label": "Mini ADSS (OD 6.3mm)"
+    },
+    {
+      "fiber": "48",
+      "type": "Standard",
+      "od": 8.4,
+      "supplier": null,
+      "oval_range": null,
+      "circular_range": null,
+      "ports": null,
+      "label": "Standard ADSS (OD 8.4mm)"
+    },
+    {
+      "fiber": "48",
+      "type": "Standard",
+      "od": 10.4,
+      "supplier": null,
+      "oval_range": null,
+      "circular_range": null,
+      "ports": null,
+      "label": "Standard ADSS (OD 10.4mm)"
+    },
+    {
+      "fiber": "48",
+      "type": "Slim",
+      "od": 8.0,
+      "supplier": null,
+      "oval_range": null,
+      "circular_range": null,
+      "ports": null,
+      "label": "Slimline ADSS (OD 8.0mm)"
     },
     {
       "fiber": "48",
@@ -843,7 +933,17 @@
         9.0
       ],
       "ports": 2,
-      "label": "Mini (OD 6.3mm, AMHT)"
+      "label": "Mini ADSS (OD 6.3mm)"
+    },
+    {
+      "fiber": "72",
+      "type": "Standard",
+      "od": 11.2,
+      "supplier": null,
+      "oval_range": null,
+      "circular_range": null,
+      "ports": null,
+      "label": "Standard ADSS (OD 11.2mm)"
     },
     {
       "fiber": "72",
@@ -859,40 +959,21 @@
         9.0
       ],
       "ports": 2,
-      "label": "Slim (OD 8.0mm, AMHT)"
-    },
-    {
-      "fiber": "72",
-      "type": "Micro Blown",
-      "od": 5.4,
-      "supplier": "AMHT",
-      "oval_range": null,
-      "circular_range": [
-        4.0,
-        6.0
-      ],
-      "ports": 4,
-      "label": "Micro Blown (OD 5.4mm, AMHT)"
+      "label": "Slimline ADSS (OD 8.0mm)"
     },
     {
       "fiber": "96",
-      "type": "Slim",
-      "od": 9.7,
-      "supplier": "AMHT",
-      "oval_range": [
-        8.1,
-        10.0
-      ],
-      "circular_range": [
-        7.0,
-        20.0
-      ],
-      "ports": 1,
-      "label": "Slim (OD 9.7mm, AMHT)"
+      "type": "Standard",
+      "od": 12.8,
+      "supplier": null,
+      "oval_range": null,
+      "circular_range": null,
+      "ports": null,
+      "label": "Standard ADSS (OD 12.8mm)"
     },
     {
       "fiber": "144",
-      "type": "Slim",
+      "type": "Standard",
       "od": 15.8,
       "supplier": "YOA",
       "oval_range": [
@@ -904,21 +985,11 @@
         20.0
       ],
       "ports": 1,
-      "label": "Slim (OD 15.8mm, YOA)"
+      "label": "Standard ADSS (OD 15.8mm)"
     },
     {
       "fiber": "144",
       "type": "Slim",
-      "od": 12.2,
-      "supplier": "AMHT",
-      "oval_range": null,
-      "circular_range": null,
-      "ports": null,
-      "label": "Slim (OD 12.2mm, AMHT)"
-    },
-    {
-      "fiber": "144",
-      "type": "Micro Blown",
       "od": 8.0,
       "supplier": "YOA",
       "oval_range": [
@@ -930,7 +1001,37 @@
         9.0
       ],
       "ports": 2,
-      "label": "Micro Blown (OD 8.0mm, YOA)"
+      "label": "Slimline ADSS (OD 8.0mm)"
+    },
+    {
+      "fiber": "144",
+      "type": "Slim",
+      "od": 12.2,
+      "supplier": "AMHT",
+      "oval_range": null,
+      "circular_range": null,
+      "ports": null,
+      "label": "Slimline ADSS (OD 12.2mm)"
+    },
+    {
+      "fiber": "288",
+      "type": "Standard",
+      "od": 18.0,
+      "supplier": null,
+      "oval_range": null,
+      "circular_range": null,
+      "ports": null,
+      "label": "Standard ADSS (OD 18.0mm)"
+    },
+    {
+      "fiber": "288",
+      "type": "Slim",
+      "od": 13.0,
+      "supplier": null,
+      "oval_range": null,
+      "circular_range": null,
+      "ports": null,
+      "label": "Slimline ADSS (OD 13.0mm)"
     },
     {
       "fiber": "288",
@@ -946,7 +1047,7 @@
         20.0
       ],
       "ports": 2,
-      "label": "Slim (OD 13.6mm, YOA)"
+      "label": "Slimline ADSS (OD 13.6mm)"
     }
   ]
 }
