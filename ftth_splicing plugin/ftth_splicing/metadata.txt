@@ -1,0 +1,10 @@
+[general]
+name=HuaweiSA QODN/Vumatel FTTH Auto splicing plan
+qgisMinimumVersion=3.0
+description=Generates FTTH splicing plan Excel from labeled network data
+category=Vector
+version=8.7.0
+author=Mustafa M M Ellaham
+email=Mustafaellaham@gmail.com
+tags=ftth, splicing, excel, plan, telecom, qgis
+about=Generates FTTH splicing plan Excel diagrams from labeled DJ Points, Houses, Poles, and Drop Cables. DJ Polygons are now optional. Drop Cables are the primary method for matching houses to DJs. Handles both GeoPackage (Integer) and Shapefile (Real) position fields. By Mustafa M M Ellaham.

@@ -1,0 +1,4 @@
+git status          # (optional) see what changed
+git add .
+git commit -m "Upgrade fthh_splicing to v8.7.0"
+git push origin main   # or 'master', depending on your branch

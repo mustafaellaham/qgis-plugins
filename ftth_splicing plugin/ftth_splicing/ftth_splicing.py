@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-FTTH Auto Splicing Plan v8.6.22 -- QGIS Processing Plugin
+FTTH Auto Splicing Plan v8.7.0 -- QGIS Processing Plugin
 Copyright (c) Mustafa M M Ellaham. All rights reserved.
 
 Generates FTTH splicing plan Excel (.xlsx) from labeled network data.
@@ -72,7 +72,7 @@ def _safe_val(v, default=''):
 
 
 # =============================================================================
-# FTTH SPLICING PLAN ALGORITHM  v8.6.22
+# FTTH SPLICING PLAN ALGORITHM  v8.7.0
 # =============================================================================
 
 class FTTHSplicingPlanAlgorithm(QgsProcessingAlgorithm):
@@ -125,7 +125,7 @@ class FTTHSplicingPlanAlgorithm(QgsProcessingAlgorithm):
 
     def shortHelpString(self):
         return """
-<h3>FTTH Splicing Plan (Excel output) v8.6.22</h3>
+<h3>FTTH Splicing Plan (Excel output) v8.7.0</h3>
 <p>Uses <b>DJ Polygons</b> as the PRIMARY method to match houses to DJs.
 Each DJ Polygon defines the exact service area of one DJ. Houses inside
 a polygon belong to that DJ -- exact, no ambiguity. ALL DJs appear in
@@ -160,8 +160,8 @@ per-DJ cable routing, and premise data.</p>
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterVectorLayer(
-            self.IN_DJ_POLY, 'DJ Polygons -- one polygon per DJ (REQUIRED, must have block name attr)',
-            [QgsProcessing.TypeVectorPolygon]
+            self.IN_DJ_POLY, 'DJ Polygons -- one polygon per DJ (optional, auto-detects block name)',
+            [QgsProcessing.TypeVectorPolygon], optional=True
         ))
         self.addParameter(QgsProcessingParameterVectorLayer(
             self.IN_DJ, 'DJ Points -- must be labeled (name, splitter, position, dc_name)',
@@ -176,8 +176,8 @@ per-DJ cable routing, and premise data.</p>
             [QgsProcessing.TypeVectorPoint]
         ))
         self.addParameter(QgsProcessingParameterVectorLayer(
-            self.IN_DROPS, 'Drop Cable Lines (optional -- fallback for houses not in DJ Polygons)',
-            [QgsProcessing.TypeVectorLine], optional=True
+            self.IN_DROPS, 'Drop Cable Lines (REQUIRED -- primary method to match houses to DJs)',
+            [QgsProcessing.TypeVectorLine]
         ))
         self.addParameter(QgsProcessingParameterVectorLayer(
             self.IN_DC, 'DC Lines (optional -- for FJ tracing)',
@@ -314,7 +314,7 @@ per-DJ cable routing, and premise data.</p>
                     ag_groups[ag][block][pos]['house_fields_map'][house] = hf
 
         # Sort houses and convert to ordered DJ lists
-        # v8.6.22: Simple list conversion (no gap-splitting)
+        # v8.7.0: Simple list conversion (no gap-splitting)
         for ag in ag_groups:
             for block in ag_groups[ag]:
                 for pos in ag_groups[ag][block]:
@@ -657,7 +657,7 @@ per-DJ cable routing, and premise data.</p>
         fj_layer      = self.parameterAsVectorLayer(parameters, self.IN_FJ,      context)
 
         feedback.pushInfo("=" * 60)
-        feedback.pushInfo("FTTH Splicing Plan v8.6.22 -- Excel output")
+        feedback.pushInfo("FTTH Splicing Plan v8.7.0 -- Excel output")
         feedback.pushInfo("=" * 60)
         feedback.pushInfo("Snap tolerance: {}m".format(snap_tol))
         feedback.pushInfo("")
@@ -674,6 +674,14 @@ per-DJ cable routing, and premise data.</p>
                     if actual_name.lower() == fn_lower:
                         return layer.fields().indexFromName(actual_name)
             return -1
+
+        def log_fields(layer, label):
+            """Log all field names for debugging."""
+            if not layer or not layer.isValid():
+                feedback.pushInfo("  {} fields: layer not valid".format(label))
+                return
+            all_names = [f.name() for f in layer.fields()]
+            feedback.pushInfo("  {} fields: {}".format(label, ', '.join(all_names)))
 
         # ================================================================
         # Helper: get start and end points of a line
@@ -731,8 +739,7 @@ per-DJ cable routing, and premise data.</p>
                 return best['fid'], best['name']
             return None, ''
 
-        # ================================================================
-        # Helper: extract AG name from DC label
+        # ================================================================        # Helper: extract AG name from DC label
         # e.g. "VTN_HHS_GMGZ2_AG01_DC001.1_1F_ADSS_G.657.A1(152m-162m)" -> "GMGZ2_AG01"
         # ================================================================
         def extract_ag(dc_name):
@@ -741,6 +748,27 @@ per-DJ cable routing, and premise data.</p>
                 return ''
             m = re.search(r'([A-Za-z0-9]+_AG\d+)', str(dc_name))
             return m.group(1) if m else ''
+
+        # ================================================================
+        # Helper: extract block name from DC label
+        # e.g. "VTN_HHS_GMGZ2_AG01_DC001.1_1F_ADSS..." -> "GMGZ2_B001"
+        # ================================================================
+        def extract_block(dc_name):
+            """Extract block name from DC label. Returns '' if not found."""
+            if not dc_name:
+                return ''
+            # Extract area code (before _AG)
+            area_match = re.search(r'^([A-Za-z0-9]+)_AG', str(dc_name))
+            area = area_match.group(1) if area_match else ''
+            # Extract block number from DCxxx.y
+            block_match = re.search(r'DC(\d+)\.', str(dc_name))
+            block_num = block_match.group(1) if block_match else ''
+            if area and block_num:
+                return "{}_B{:03d}".format(area, int(block_num))
+            # Fallback: if only block number found
+            if block_num:
+                return "B{:03d}".format(int(block_num))
+            return ''
 
         # ================================================================
         # Helper: walk upstream from DJ to find FJ
@@ -770,17 +798,22 @@ per-DJ cable routing, and premise data.</p>
         feedback.pushInfo("[Step 1] Detecting fields...")
 
         # --- DJ Polygon block field (auto-detect) ---
-        poly_block_idx = find_field(dj_poly_layer, [
-            'block', 'Block', 'BLOCK',
-            'b_name', 'B_NAME',
-            'id', 'ID'
-        ])
+        poly_block_idx = -1
+        if dj_poly_layer and dj_poly_layer.isValid():
+            poly_block_idx = find_field(dj_poly_layer, [
+                'block', 'Block', 'BLOCK',
+                'b_name', 'B_NAME',
+                'id', 'ID'
+            ])
 
         # --- DJ fields (must be labeled by Labeler plugin) ---
         dj_name_idx = find_field(dj_layer, ['name', 'Name', 'NAME'])
-        dj_splitter_idx = find_field(dj_layer, ['splitter', 'Splitter', 'SPLITTER'])
-        dj_position_idx = find_field(dj_layer, ['position', 'Position', 'POSITION'])
-        dj_dcname_idx = find_field(dj_layer, ['dc_name', 'DC_name', 'dcname', 'DCNAME'])
+        dj_splitter_idx = find_field(dj_layer, ['splitter', 'Splitter', 'SPLITTER', 'splitter_r'])
+        dj_position_idx = find_field(dj_layer, ['position', 'Position', 'POSITION', 'pos', 'POS', 'dj_position'])
+        dj_dcname_idx = find_field(dj_layer, ['dc_name', 'DC_name', 'dcname', 'DCNAME', 'dc', 'DC'])
+
+        # Debug: log actual DJ layer fields
+        log_fields(dj_layer, "DJ layer")
 
         # --- House name field (extensive auto-detection) ---
         house_name_idx = find_field(house_layer, [
@@ -801,15 +834,15 @@ per-DJ cable routing, and premise data.</p>
             drop_name_idx = find_field(drops_layer, ['name', 'Name', 'NAME'])
 
         # Validate required layers
-        if not dj_poly_layer or not dj_poly_layer.isValid():
-            feedback.reportError("DJ Polygons layer is REQUIRED. Please provide the DJ Polygons layer.")
+        if not drops_layer or not drops_layer.isValid():
+            feedback.reportError("Drop Cable Lines layer is REQUIRED. Please provide the Drop Cables layer.")
             return {self.PARAM_OUTPUT: output_path}
         if dj_name_idx < 0:
             feedback.reportError("DJ layer has no 'name' column. Run FTTH Labeler first!")
             return {self.PARAM_OUTPUT: output_path}
 
         feedback.pushInfo("  DJ Polygon block field: {}".format(
-            'found' if poly_block_idx >= 0 else 'NOT FOUND'))
+            'found' if poly_block_idx >= 0 else 'NOT FOUND (will extract from DC name)'))
         feedback.pushInfo("  DJ name field:          found")
         feedback.pushInfo("  DJ splitter field:      {}".format(
             'found' if dj_splitter_idx >= 0 else 'NOT FOUND'))
@@ -830,23 +863,22 @@ per-DJ cable routing, and premise data.</p>
         feedback.pushInfo("")
         feedback.pushInfo("[Step 2] Indexing layers into memory...")
 
-        # --- Index DJ Polygons: list of {'fid', 'geom', 'block'} ---
+        # --- Index DJ Polygons (optional -- used for block name if available) ---
         dj_polygons = []
-        for feat in dj_poly_layer.getFeatures():
-            geom = feat.geometry()
-            blk = ''
-            if poly_block_idx >= 0:
-                blk = str(feat[poly_block_idx] or '').strip()
-            dj_polygons.append({
-                'fid': feat.id(),
-                'geom': geom,
-                'block': blk
-            })
-        feedback.pushInfo("  Indexed {} DJ polygons".format(len(dj_polygons)))
-
-        if len(dj_polygons) == 0:
-            feedback.reportError("DJ Polygons layer has 0 features. Nothing to process.")
-            return {self.PARAM_OUTPUT: output_path}
+        if dj_poly_layer and dj_poly_layer.isValid():
+            for feat in dj_poly_layer.getFeatures():
+                geom = feat.geometry()
+                blk = ''
+                if poly_block_idx >= 0:
+                    blk = str(feat[poly_block_idx] or '').strip()
+                dj_polygons.append({
+                    'fid': feat.id(),
+                    'geom': geom,
+                    'block': blk
+                })
+            feedback.pushInfo("  Indexed {} DJ polygons (optional)".format(len(dj_polygons)))
+        else:
+            feedback.pushInfo("  DJ Polygons not provided -- block names will be extracted from DC name")
 
         # --- Index DJ Points: {name: {'fid', 'point', 'splitter', 'position', 'dc_name'}} ---
         djs = {}
@@ -948,87 +980,95 @@ per-DJ cable routing, and premise data.</p>
             feedback.pushInfo("  Indexed {} FJ points".format(len(fjs)))
 
         # ================================================================
-        # Step 3 -- Match DJ Polygons to DJ Points
+        # Step 3 -- Match DJ Polygons to DJ Points (optional)
         # ================================================================
         feedback.pushInfo("")
-        feedback.pushInfo("[Step 3] Matching DJ Polygons to DJ Points...")
+        feedback.pushInfo("[Step 3] Matching DJ Polygons to DJ Points (optional)...")
 
         # {polygon_fid: dj_name}
         poly_to_dj = {}
         unmatched_polys = []
 
-        for poly in dj_polygons:
-            poly_geom = poly['geom']
-            best_dj = None
-            best_dist = float('inf')
+        if dj_polygons:
+            for poly in dj_polygons:
+                poly_geom = poly['geom']
+                best_dj = None
+                best_dist = float('inf')
 
-            # Try 1: point-in-polygon (DJ point inside polygon)
-            for dj_name, dj_info in djs.items():
-                if poly_geom.contains(dj_info['point']):
-                    best_dj = dj_name
-                    break
-
-            # Try 2: nearest DJ within 10m of polygon centroid
-            if not best_dj:
-                centroid = poly_geom.centroid().asPoint()
+                # Try 1: point-in-polygon (DJ point inside polygon)
                 for dj_name, dj_info in djs.items():
-                    d = centroid.distance(dj_info['point'])
-                    if d < best_dist and d <= 10.0:
-                        best_dist = d
+                    if poly_geom.contains(dj_info['point']):
                         best_dj = dj_name
+                        break
 
-            if best_dj:
-                poly_to_dj[poly['fid']] = best_dj
-            else:
-                unmatched_polys.append(poly['fid'])
+                # Try 2: nearest DJ within 10m of polygon centroid
+                if not best_dj:
+                    centroid = poly_geom.centroid().asPoint()
+                    for dj_name, dj_info in djs.items():
+                        d = centroid.distance(dj_info['point'])
+                        if d < best_dist and d <= 10.0:
+                            best_dist = d
+                            best_dj = dj_name
 
-        feedback.pushInfo("  Matched {} of {} DJ Polygons to DJ Points".format(
-            len(poly_to_dj), len(dj_polygons)))
-        if unmatched_polys:
-            feedback.pushInfo("  WARNING: {} DJ Polygons could not be matched to any DJ Point".format(
-                len(unmatched_polys)))
+                if best_dj:
+                    poly_to_dj[poly['fid']] = best_dj
+                else:
+                    unmatched_polys.append(poly['fid'])
+
+            feedback.pushInfo("  Matched {} of {} DJ Polygons to DJ Points".format(
+                len(poly_to_dj), len(dj_polygons)))
+            if unmatched_polys:
+                feedback.pushInfo("  WARNING: {} DJ Polygons could not be matched to any DJ Point".format(
+                    len(unmatched_polys)))
+        else:
+            feedback.pushInfo("  DJ Polygons not provided -- skipping")
 
         # ================================================================
-        # Step 4 -- Match Houses to DJ Polygons (PRIMARY method)
+        # Step 4 -- Match Houses to DJs via DJ Polygons (if provided)
         # ================================================================
         feedback.pushInfo("")
-        feedback.pushInfo("[Step 4] Matching Houses to DJ Polygons (point-in-polygon)...")
+        feedback.pushInfo("[Step 4] Matching Houses to DJs...")
 
         # {dj_name: [house_info, ...]}
         dj_to_houses = {}
-        unmatched_houses = {}   # houses not matched by any DJ Polygon
+        unmatched_houses = {}   # houses not matched yet
 
-        for house_fid, house_info in houses.items():
-            matched = False
-            for poly in dj_polygons:
-                dj_name = poly_to_dj.get(poly['fid'])
-                if not dj_name:
-                    continue
-                if poly['geom'].contains(house_info['point']):
-                    if dj_name not in dj_to_houses:
-                        dj_to_houses[dj_name] = []
-                    dj_to_houses[dj_name].append({
-                        'fid': house_fid,
-                        'name': house_info['name'],
-                        'fields': house_info.get('fields', {}),
-                        'point': house_info['point'],
-                    })
-                    matched = True
-                    break
-            if not matched:
-                unmatched_houses[house_fid] = house_info
+        if dj_polygons and poly_to_dj:
+            feedback.pushInfo("  Trying DJ Polygons first (point-in-polygon)...")
+            for house_fid, house_info in houses.items():
+                matched = False
+                for poly in dj_polygons:
+                    dj_name = poly_to_dj.get(poly['fid'])
+                    if not dj_name:
+                        continue
+                    if poly['geom'].contains(house_info['point']):
+                        if dj_name not in dj_to_houses:
+                            dj_to_houses[dj_name] = []
+                        dj_to_houses[dj_name].append({
+                            'fid': house_fid,
+                            'name': house_info['name'],
+                            'fields': house_info.get('fields', {}),
+                            'point': house_info['point'],
+                        })
+                        matched = True
+                        break
+                if not matched:
+                    unmatched_houses[house_fid] = house_info
 
-        total_matched = sum(len(hlist) for hlist in dj_to_houses.values())
-        feedback.pushInfo("  Matched {} houses to DJs via DJ Polygons".format(total_matched))
-        if unmatched_houses:
-            feedback.pushInfo("  {} houses not inside any DJ Polygon".format(len(unmatched_houses)))
+            total_matched = sum(len(hlist) for hlist in dj_to_houses.values())
+            feedback.pushInfo("  Matched {} houses via DJ Polygons".format(total_matched))
+            if unmatched_houses:
+                feedback.pushInfo("  {} houses not inside any DJ Polygon".format(len(unmatched_houses)))
+        else:
+            feedback.pushInfo("  DJ Polygons not provided -- all houses will use Drop Cables")
+            unmatched_houses = dict(houses)
 
         # ================================================================
-        # Step 5 -- Fallback: match unmatched houses via Drop Cables
+        # Step 5 -- Match Houses to DJs via Drop Cables (PRIMARY / fallback)
         # ================================================================
         if unmatched_houses and drops_layer and drops_layer.isValid():
             feedback.pushInfo("")
-            feedback.pushInfo("[Step 5] Fallback: using Drop Cables for {} unmatched houses...".format(
+            feedback.pushInfo("[Step 5] Matching {} houses via Drop Cables...".format(
                 len(unmatched_houses)))
 
             # Build temporary DJ index by fid for nearest-node lookup
@@ -1055,7 +1095,7 @@ per-DJ cable routing, and premise data.</p>
                         continue
 
                     # Strategy: one end is an unmatched house, other end is a DJ
-                    # Try both combinations
+                    # Try both combinations (direction-agnostic)
                     # Option 1: A=unmatched_house, B=DJ
                     h_fid_1, h_info_1 = nearest_node(pt_a, unmatched_houses, snap_tol)
                     d_fid_1, d_info_1 = nearest_node(pt_b, djs_for_nearest, snap_tol)
@@ -1101,7 +1141,7 @@ per-DJ cable routing, and premise data.</p>
                     skipped_drops += 1
                     continue
 
-            feedback.pushInfo("  Fallback matched {} additional houses via Drop Cables".format(
+            feedback.pushInfo("  Matched {} additional houses via Drop Cables".format(
                 fallback_matched))
             if skipped_drops > 0:
                 feedback.pushInfo("  Skipped {} drop cables".format(skipped_drops))
@@ -1118,11 +1158,7 @@ per-DJ cable routing, and premise data.</p>
 
         # {dj_name: {'pole_fid', 'pole_name'}}
         dj_to_pole = {}
-        for poly in dj_polygons:
-            dj_name = poly_to_dj.get(poly['fid'])
-            if not dj_name or dj_name not in djs:
-                continue
-            dj_info = djs[dj_name]
+        for dj_name, dj_info in djs.items():
             pole_fid, pole_name = nearest_pole(dj_info['point'], poles, snap_tol)
             dj_to_pole[dj_name] = {
                 'pole_fid': pole_fid or '',
@@ -1140,10 +1176,7 @@ per-DJ cable routing, and premise data.</p>
         # {dj_name: {'fj_name', 'fj_pole'}}
         dj_to_fj = {}
         if dc_by_to and fjs:
-            for poly in dj_polygons:
-                dj_name = poly_to_dj.get(poly['fid'])
-                if not dj_name:
-                    continue
+            for dj_name, dj_info in djs.items():
                 fj_name, fj_point = find_fj_for_dj(dj_name, dc_by_to, fjs)
                 fj_pole_name = ''
                 if fj_name and fj_point:
@@ -1170,21 +1203,18 @@ per-DJ cable routing, and premise data.</p>
         output_rows = []
         row_counter = 0
 
-        # Process ALL DJ Polygons in order (ensures ALL DJs appear, even with 0 houses)
-        for poly in dj_polygons:
-            dj_name = poly_to_dj.get(poly['fid'])
-            if not dj_name:
-                # Unmatched polygon -- skip (DJ point not found)
-                continue
-
-            dj_info = djs.get(dj_name)
-            if not dj_info:
-                continue
-
+        # Process ALL DJs (ensures ALL DJs appear, even with 0 houses)
+        for dj_name, dj_info in djs.items():
             pole_info = dj_to_pole.get(dj_name, {'pole_fid': '', 'pole_name': ''})
             fj_info = dj_to_fj.get(dj_name, {'fj_name': '', 'fj_pole': ''})
             ag_name = extract_ag(dj_info['dc_name'])
-            block_name = poly.get('block', '')
+            block_name = extract_block(dj_info['dc_name'])
+            # If block extraction fails, try DJ Polygon block (fallback)
+            if not block_name and dj_polygons:
+                for poly in dj_polygons:
+                    if poly_to_dj.get(poly['fid']) == dj_name:
+                        block_name = poly.get('block', '')
+                        break
 
             house_list = dj_to_houses.get(dj_name, [])
 
@@ -1251,7 +1281,7 @@ per-DJ cable routing, and premise data.</p>
                 })
 
         feedback.pushInfo("  Built {} output rows for {} DJs".format(
-            len(output_rows), len([p for p in dj_polygons if p['fid'] in poly_to_dj])))
+            len(output_rows), len(djs)))
 
         # ================================================================
         # Step 9 -- Build Excel splicing diagram
@@ -1276,15 +1306,17 @@ per-DJ cable routing, and premise data.</p>
         feedback.pushInfo("")
         feedback.pushInfo("=" * 60)
         feedback.pushInfo("SPLICING PLAN COMPLETE")
-        feedback.pushInfo("  DJ Polygons processed : {}".format(len(dj_polygons)))
-        feedback.pushInfo("  DJs matched           : {}".format(len(poly_to_dj)))
-        feedback.pushInfo("  Houses matched (poly) : {}".format(total_matched))
-        feedback.pushInfo("  Output rows           : {}".format(len(output_rows)))
-        feedback.pushInfo("  DJs with houses       : {}".format(
+        feedback.pushInfo("  DJ Points processed     : {}".format(len(djs)))
+        if dj_polygons:
+            feedback.pushInfo("  DJ Polygons (optional)  : {}".format(len(dj_polygons)))
+        feedback.pushInfo("  Houses matched (total)  : {}".format(
+            sum(len(hlist) for hlist in dj_to_houses.values())))
+        feedback.pushInfo("  Output rows             : {}".format(len(output_rows)))
+        feedback.pushInfo("  DJs with houses         : {}".format(
             len([d for d in dj_to_houses if dj_to_houses[d]])))
-        feedback.pushInfo("  DJs with 0 houses     : {}".format(
+        feedback.pushInfo("  DJs with 0 houses       : {}".format(
             len([d for d in dj_to_houses if not dj_to_houses[d]])))
-        feedback.pushInfo("  Output file           : {}".format(output_path))
+        feedback.pushInfo("  Output file             : {}".format(output_path))
 
         return {self.PARAM_OUTPUT: output_path}
 
@@ -1373,7 +1405,7 @@ class FTTHSplicingPlugin:
         QMessageBox.information(
             self.iface.mainWindow(),
             'About FTTH Auto Splicing Plan',
-            '<h3>FTTH Auto Splicing Plan v8.6.22</h3>'
+            '<h3>FTTH Auto Splicing Plan v8.7.0</h3>'
             '<p>Generates FTTH splicing plan Excel (.xlsx) from labeled network data.</p>'
             '<p>Uses DJ Polygons as the PRIMARY method to match houses to DJs '
             '(point-in-polygon). Handles both GeoPackage (Integer) and '
