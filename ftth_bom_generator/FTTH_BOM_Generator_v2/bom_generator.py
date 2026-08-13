@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""FTTH BOM Generator v2.7 — Save-As dialog, template pool export, no-bracket warnings, CRS-safe."""
+"""FTTH BOM Generator v2.7.1 — pole snap tolerance; Save-As dialog, template pool export, no-bracket warnings, CRS-safe."""
 
 import os, json, math, re
 from datetime import datetime
@@ -77,6 +77,7 @@ class BOMGeneratorV2b:
         self._work_crs = None
         self._xforms = {}
         self._nb_seen = set()
+        self.pole_tol = float(self.config.get('_settings', {}).get('pole_snap_tolerance_m', 5.0))
 
     def load_config(self):
         with open(os.path.join(self.plugin_dir, 'bom_rules.json'), 'r') as f:
@@ -321,11 +322,13 @@ class BOMGeneratorV2b:
         dead_ends = defaultdict(int)
         tangents = defaultdict(int)
         hook_count = 0
+        tol = self.pole_tol
+        self.v['pole_snap_tolerance_m'] = tol
 
         for name, fiber, opt, od, g, role in conventional:
             ordered = []
             for pn, pg in pole_geoms:
-                if g.intersects(pg):
+                if g.distance(pg) <= tol:  # snap tolerance: exact touch OR drawn-offset pass
                     nearest = g.nearestPoint(pg.centroid())
                     ordered.append((pn, pg, g.lineLocatePoint(nearest)))
             ordered.sort(key=lambda x: x[2]); n = len(ordered)
@@ -425,16 +428,17 @@ class BOMGeneratorV2b:
 
         l = self._L('Distribution')
         total_pass = dc_touch = 0; plum_set = set()
+        tol = self.pole_tol
         if l:
             for f in l.getFeatures():
                 g = f.geometry()
                 if not g or g.isNull(): continue
                 g = self._g(l, g)
-                n = sum(1 for _, pg in pole_geoms if g.intersects(pg))
+                n = sum(1 for _, pg in pole_geoms if g.distance(pg) <= tol)
                 if n > 0:
                     total_pass += n; dc_touch += 1
                     for pn, pg in pole_geoms:
-                        if g.intersects(pg): plum_set.add(pg.asWkt())
+                        if g.distance(pg) <= tol: plum_set.add(pg.asWkt())
         self.v['wedges'] = 2*total_pass - 2*dc_touch
         self.v['plum_hooks'] = len(plum_set)
 

@@ -1068,5 +1068,9 @@
       "ports": 2,
       "label": "Slimline ADSS (OD 13.6mm)"
     }
-  ]
+  ],
+  "_settings": {
+    "pole_snap_tolerance_m": 5.0,
+    "_comment": "Pole counts as passed-by-cable when within this distance (m). Feeder/links/core are drawn ~2-5m offset from pole points; distribution is snapped. Tune here, no code change needed."
+  }
 }
