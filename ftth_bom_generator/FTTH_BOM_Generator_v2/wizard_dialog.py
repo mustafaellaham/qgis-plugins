@@ -66,6 +66,9 @@ class WizardDialogV2b(QDialog):
         v4.addWidget(self.tab4_scroll)
         self.tabs.addTab(t4, "4. Cable-Joint Matrix")
 
+        # Rebuild Tab 4 on every visit so it shows the CURRENT Tab 2 OD choices
+        self.tabs.currentChanged.connect(self._on_tab_changed)
+
         layout.addWidget(self.tabs)
         btn = QHBoxLayout(); btn.addStretch()
         self.finish_btn = QPushButton("Finish"); self.finish_btn.clicked.connect(self.accept)
@@ -164,7 +167,21 @@ class WizardDialogV2b(QDialog):
         self.tab3_layout.addStretch()
 
     # ── TAB 4: Cable-Joint Matrix ──
-    def _populate_tab4(self):
+    def _on_tab_changed(self, i):
+        """Repopulate Tab 4 on every visit so OD labels follow the CURRENT
+        Tab 2 selections. Existing Express/Terminated ticks are preserved."""
+        if i != 3: return
+        saved = {}
+        for mh_name, checks in getattr(self, '_tab4_express', {}).items():
+            saved[mh_name] = {c: ce.isChecked() for c, (ce, ct) in checks.items()}
+        while self.tab4_layout.count():
+            item = self.tab4_layout.takeAt(0)
+            w = item.widget()
+            if w: w.deleteLater()
+        self._populate_tab4(saved)
+
+    def _populate_tab4(self, saved=None):
+        saved = saved or {}
         ca_layer = self.gen._L('Core_Aggregation')
         if not ca_layer: return
 
@@ -178,7 +195,15 @@ class WizardDialogV2b(QDialog):
                 name = f['Name'] or ''
                 fiber = self._pf(name)
                 if fiber in ('1','?'): continue
-                opt = self.gen._get_od_full(name, fiber)
+                # Use the CURRENT Tab 2 combo selection for this fiber group
+                combo = self.fiber_type_combos.get(fiber)
+                idx = combo.currentData() if combo is not None else None
+                fiber_opts = [o for o in self.config.get('_cable_options', [])
+                              if o['fiber'] == fiber]
+                if idx is not None and 0 <= idx < len(fiber_opts):
+                    opt = fiber_opts[idx]
+                else:
+                    opt = self.gen._get_od_full(name, fiber)
                 od = opt.get('od', 0)
                 if od == 0: continue
                 all_cables.append((name, fiber, opt, od, self.gen._g(l, g), role))
@@ -219,9 +244,10 @@ class WizardDialogV2b(QDialog):
 
                 chk_exp = QCheckBox()
                 chk_term = QCheckBox()
-                # DEFAULT: all Terminated. Express UNCHECKED, Terminated CHECKED.
-                chk_exp.setChecked(False)
-                chk_term.setChecked(True)
+                # DEFAULT: all Terminated. Restore saved ticks on rebuild.
+                was_express = saved.get(mh_name, {}).get(cname)
+                chk_exp.setChecked(was_express is True)
+                chk_term.setChecked(was_express is not True)
                 table.setCellWidget(r, 1, chk_exp)
                 table.setCellWidget(r, 2, chk_term)
                 self._tab4_express[mh_name][cname] = (chk_exp, chk_term)
