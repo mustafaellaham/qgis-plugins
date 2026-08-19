@@ -172,6 +172,12 @@ class BOMGeneratorV2b:
         m = re.search(r'\((\d+)m\s*-\s*(\d+)m\)', name)
         return float(m.group(2)) if m else None
 
+    @staticmethod
+    def _name_lengths(name):
+        """Return (XXXX, YYYY) from (XXXXm-YYYYm) pattern, or (None, None)."""
+        m = re.search(r'\((\d+)m\s*-\s*(\d+)m\)', name)
+        return (float(m.group(1)), float(m.group(2))) if m else (None, None)
+
     # ════════════════════════════════════════════════════════
     #  MAIN PIPELINE (scan → wizard → hardware ALL)
     # ════════════════════════════════════════════════════════
@@ -340,15 +346,45 @@ class BOMGeneratorV2b:
         tol = self.pole_tol
         self.v['pole_snap_tolerance_m'] = tol
 
+        # feeder/link aggregation points for per-cable pass counting (audit table)
+        agg_geoms = []
+        for role_a in ['Feeder_aggregation', 'Link_Aggregation']:
+            l_a = self._L(role_a)
+            if not l_a: continue
+            for f in l_a.getFeatures():
+                ga = f.geometry()
+                if ga and not ga.isNull():
+                    ga = self._g(l_a, ga)
+                    if ga.type() == 2: ga = ga.centroid()
+                    agg_geoms.append(ga)
+
+        cable_audit = []          # per-cable audit rows for Calculation_Audit sheet
+        audit_by_name = {}
+
         for name, fiber, opt, od, g, role in conventional:
+            xxxx, yyyy = self._name_lengths(name)
+            rec = {'name': name, 'fiber': fiber, 'od': od,
+                   'actual': (int(xxxx) if xxxx is not None else None),
+                   'published': (int(yyyy * 1.05) if yyyy is not None else None),
+                   'buffer': None,
+                   'poles': 0, 'hooks': 0, 'agg_passes': 0, 'turns_gt15': 0,
+                   'deadend_qty': 0, 'deadend_size': '',
+                   'tangent_qty': 0, 'tangent_size': '',
+                   'gland_oval': '', 'gland_oval_size': ''}
+            if rec['actual'] is not None and rec['published'] is not None:
+                rec['buffer'] = rec['published'] - rec['actual']
+            cable_audit.append(rec); audit_by_name[name] = rec
+
             ordered = []
             for pn, pg in pole_geoms:
                 if g.distance(pg) <= tol:  # snap tolerance: exact touch OR drawn-offset pass
                     nearest = g.nearestPoint(pg.centroid())
                     ordered.append((pn, pg, g.lineLocatePoint(nearest)))
             ordered.sort(key=lambda x: x[2]); n = len(ordered)
+            rec['agg_passes'] = sum(1 for ag in agg_geoms if g.distance(ag) <= tol)
             if n == 0: continue
             hook_count += n
+            rec['poles'] = n; rec['hooks'] = n
 
             # Tangents: middle poles with angle <= 20 degrees
             if n >= 3:
@@ -363,21 +399,29 @@ class BOMGeneratorV2b:
                     mo = math.hypot(vo.x(), vo.y())
                     if mi < 0.001 or mo < 0.001: continue
                     ang = math.degrees(math.acos(max(-1, min(1, dot/(mi*mo)))))
+                    if ang > 15.0:
+                        rec['turns_gt15'] += 1
                     if ang <= 20.0:
                         b = _bracket(od, brackets.get('tangent',[]))
-                        if b: tangents[b] += 1
+                        if b:
+                            tangents[b] += 1
+                            rec['tangent_qty'] += 1; rec['tangent_size'] = b
                         else: self._nb_warn('tangent', fiber, od)
 
             # Dead ends: every pole-pass
             for i in range(n):
                 de = 1 if (i==0 or i==n-1) else 2
                 b = _bracket(od, brackets.get('dead_end',[]))
-                if b: dead_ends[b] += de
+                if b:
+                    dead_ends[b] += de
+                    rec['deadend_qty'] += de; rec['deadend_size'] = b
                 else: self._nb_warn('dead_end', fiber, od)
 
         self.v['dead_ends'] = dict(dead_ends)
         self.v['tangents'] = dict(tangents)
         self.v['hook_count'] = hook_count + self.v['feeder_joints'] + self.v['link_joints']
+        self.cable_audit = cable_audit
+        self.audit_by_name = audit_by_name
 
         # ── OVAL + GLAND from wizard Express/Terminated or auto-compute ──
         express = self.wiz.get('express_cables', {})
@@ -402,7 +446,10 @@ class BOMGeneratorV2b:
 
                 if is_express:
                     b = _bracket(od, brackets.get('oval', []))
-                    if b: oval[b] += 1
+                    if b:
+                        oval[b] += 1
+                        rec = audit_by_name.get(cable_name)
+                        if rec: rec['gland_oval'] = 'Oval'; rec['gland_oval_size'] = b
                     else: self._nb_warn('oval_port', fiber, od)
 
         # ALL cables (conventional, at manholes) = Terminated by default → glands.
@@ -424,7 +471,10 @@ class BOMGeneratorV2b:
                         if name in express_keys:
                             continue
                         b = _bracket(od, brackets.get('mech_seal', []))
-                        if b: gland[b] += 1
+                        if b:
+                            gland[b] += 1
+                            rec = audit_by_name.get(name)
+                            if rec: rec['gland_oval'] = 'Gland'; rec['gland_oval_size'] = b
                         else: self._nb_warn('mech_seal', fiber, od)
 
         self.v['oval_ports'] = dict(oval)
@@ -655,6 +705,7 @@ class BOMGeneratorV2b:
         audit['A1']='Variable'; audit['B1']='Value'
         for i,(k,val) in enumerate(sorted(self.v.items()),2):
             audit.cell(row=i,column=1,value=k); audit.cell(row=i,column=2,value=str(val))
+        self._write_audit_tables(audit, len(self.v) + 3)
 
         wb.save(out)
         return notes
@@ -683,5 +734,64 @@ class BOMGeneratorV2b:
         for i,(k,val) in enumerate(sorted(self.v.items()),2):
             if isinstance(val,dict): val = str(val)
             audit.cell(row=i,column=1,value=k); audit.cell(row=i,column=2,value=str(val))
+        self._write_audit_tables(audit, len(self.v) + 3)
 
         wb.save(out)
+
+    # ════════════════════════════════════════════════════════
+    #  AUDIT TABLES — per-cable table + key item QTY table
+    #  (appended to Calculation_Audit below the variable dump)
+    # ════════════════════════════════════════════════════════
+    def _write_audit_tables(self, ws, header_row):
+        from openpyxl.styles import Font
+        bold = Font(bold=True)
+        r = header_row
+
+        # ── Table 1: per-cable audit ──
+        headers = ['Name', 'atual length', 'pulished length', 'added buffer',
+                   'number of passed  feeder or link aggregation ',
+                   'number of passed poles', 'number of turns>15 degree',
+                   'deadend QTY', 'Dead end size', 'tangent QTY', 'Tangent size',
+                   'gland or Oval', 'gland or Oval size',
+                   'BRACKET 3 WAY SHORT (HOOK) QTY']
+        for c, h in enumerate(headers, 1):
+            ws.cell(row=r, column=c, value=h).font = bold
+        r += 1
+        for rec in getattr(self, 'cable_audit', []):
+            vals = [rec['name'], rec['actual'], rec['published'], rec['buffer'],
+                    rec['agg_passes'], rec['poles'], rec['turns_gt15'],
+                    rec['deadend_qty'] or None, rec['deadend_size'] or None,
+                    rec['tangent_qty'] or None, rec['tangent_size'] or None,
+                    rec['gland_oval'] or None, rec['gland_oval_size'] or None,
+                    rec['hooks'] or None]
+            for c, val in enumerate(vals, 1):
+                ws.cell(row=r, column=c, value=val)
+            r += 1
+
+        # ── Table 2: key item QTY ──
+        r += 1
+        ws.cell(row=r, column=1, value='item').font = bold
+        ws.cell(row=r, column=2, value='QTY').font = bold
+        r += 1
+        by_code = {str(it.get('code','')).strip(): it for it in self.config['bom_items']}
+        def q(code):
+            it = by_code.get(code)
+            if not it: return None
+            try: return self._compute(it)
+            except Exception: return None
+        rows2 = [
+            ('aggregation polygon count', self.v.get('agg_polygons', 0)),
+            ('V SHAPE SLACK BRACKET QTY', q('1524345')),
+            ('Block  polygon count', self.v.get('blocks', 0)),
+            ('(MK2 Fibre Tray and Face Plate) 1u Empty patch panel Quad faceplate 24 slots', q('52345313')),
+            ('Quad flanged mid couplers LC/APC', q('52345311')),
+            ('PLC 1 x 2 SPLITTER WITH LCAPC (PRE-CONNECTED)', q('52345310')),
+            ('LC/APC to LC/APC patch cord 3m', q('52345308')),
+            ('LC/APC to SC/UPC patch cord 3m', q('52345309')),
+            ('SPLITTER BARE FIBRE 2 WAY', q('52345294')),
+        ]
+        for label, val in rows2:
+            ws.cell(row=r, column=1, value=label)
+            ws.cell(row=r, column=2, value=val)
+            r += 1
+        ws.column_dimensions['A'].width = 60
