@@ -20,8 +20,16 @@ SLACK_VALUES = [10, 9, 8, 7]
 def _pf(name):
     m = re.search(r'(\d+)F', name); return m.group(1) if m else '?'
 def _height(desc):
+    """Pole height in meters. Accepts HTML balloon ('<td>9m</td>'),
+    plain number ('6' / '6m' / ' 7 '), or text containing '9m'."""
     if not desc: return 0
-    m = re.search(r'<td>(\d+)m</td>', desc); return int(m.group(1)) if m else 0
+    m = re.search(r'<td>(\d+)m</td>', desc)
+    if m: return int(m.group(1))
+    s = str(desc).strip()
+    m = re.fullmatch(r'(\d+(?:\.\d+)?)\s*m?', s)
+    if m: return int(float(m.group(1)))
+    m = re.search(r'(\d+)\s*m\b', s)
+    return int(m.group(1)) if m else 0
 def _bracket(od, table):
     for entry in table:
         lo, hi = entry['range'][0], entry['range'][1]
