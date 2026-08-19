@@ -411,8 +411,10 @@ class BOMGeneratorV2b:
                             rec['tangent_qty'] += 1; rec['tangent_size'] = b
                         else: self._nb_warn('tangent', fiber, od)
 
-            # Dead ends: start pole + end pole + 1 per turning pole
-            de_total = rec['turns_gt15'] + 2
+            # Dead ends: 1 at start pole + 1 at end pole + 2 per turning pole
+            # (a turn pole anchors the cable on BOTH sides; every path pole
+            #  gets either dead-ends (turn) or a tangent (straight))
+            de_total = 2 * rec['turns_gt15'] + 2
             b = _bracket(od, brackets.get('dead_end',[]))
             if b:
                 dead_ends[b] += de_total
@@ -656,6 +658,11 @@ class BOMGeneratorV2b:
         msg = f"BOM saved to:\n{out}"
         if notes:
             msg += "\n\nNOTES:\n" + "\n".join(f"  {n}" for n in notes[:25])
+        # Auto-open the saved workbook (Windows)
+        try:
+            if hasattr(os, 'startfile'): os.startfile(out)
+        except Exception:
+            pass
         QMessageBox.information(self.iface.mainWindow(), "BOM Export", msg)
 
     def _export_from_template(self, tpl, out, dt):
