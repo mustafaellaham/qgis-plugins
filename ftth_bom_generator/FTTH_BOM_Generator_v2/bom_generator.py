@@ -275,14 +275,29 @@ class BOMGeneratorV2b:
         v['dj_1_8']=v['dj_1_9']=v['m8']=v['m16']=0
         l = self._L('Distributions joints')
         if l:
+            has_name = l.fields().indexOf('name') != -1
             for f in l.getFeatures():
                 desc = f['description'] or ''
+                name = ''
+                if has_name:
+                    try: name = f['name'] or ''
+                    except Exception: name = ''
+                # --- 1:8 / 1:9 detection ---
+                # Priority 1: HTML balloon <td>Type</td><td>8|9</td> in description
+                # Priority 2: pattern 1:8 / 1:9 (also 1x8, 1X9, 1/8 ...) in name OR plain description
+                t = None
                 m = re.search(r'<td>Type</td>\s*<td>(\d+)</td>', desc)
                 if m:
                     t = int(m.group(1))
-                    if t==8: v['dj_1_8']+=1
-                    elif t==9: v['dj_1_9']+=1
-                d = desc.lower()
+                else:
+                    m2 = (re.search(r'1\s*[:xX/]\s*([89])(?!\d)', name)
+                          or re.search(r'1\s*[:xX/]\s*([89])(?!\d)', desc))
+                    if m2:
+                        t = int(m2.group(1))
+                if t == 8: v['dj_1_8'] += 1
+                elif t == 9: v['dj_1_9'] += 1
+                # --- M8 / M16: check BOTH description and name ---
+                d = (desc + ' ' + name).lower()
                 if 'm8' in d: v['m8']+=1
                 if 'm16' in d: v['m16']+=1
 
