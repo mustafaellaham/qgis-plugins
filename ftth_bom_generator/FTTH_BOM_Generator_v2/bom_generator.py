@@ -386,7 +386,10 @@ class BOMGeneratorV2b:
             hook_count += n
             rec['poles'] = n; rec['hooks'] = n
 
-            # Tangents: middle poles with angle <= 20 degrees
+            # OWNER RULE (2026-08-20):
+            #   turns   = middle poles where the cable turns (angle > 15°)
+            #   tangent = 1 per middle pole where cable continues STRAIGHT (angle <= 15°)
+            #   deadend = turns + 2  (start pole + end pole always get one, sized by cable OD)
             if n >= 3:
                 for i in range(1, n-1):
                     pp = ordered[i-1][1].centroid().asPoint()
@@ -401,21 +404,20 @@ class BOMGeneratorV2b:
                     ang = math.degrees(math.acos(max(-1, min(1, dot/(mi*mo)))))
                     if ang > 15.0:
                         rec['turns_gt15'] += 1
-                    if ang <= 20.0:
+                    else:
                         b = _bracket(od, brackets.get('tangent',[]))
                         if b:
                             tangents[b] += 1
                             rec['tangent_qty'] += 1; rec['tangent_size'] = b
                         else: self._nb_warn('tangent', fiber, od)
 
-            # Dead ends: every pole-pass
-            for i in range(n):
-                de = 1 if (i==0 or i==n-1) else 2
-                b = _bracket(od, brackets.get('dead_end',[]))
-                if b:
-                    dead_ends[b] += de
-                    rec['deadend_qty'] += de; rec['deadend_size'] = b
-                else: self._nb_warn('dead_end', fiber, od)
+            # Dead ends: start pole + end pole + 1 per turning pole
+            de_total = rec['turns_gt15'] + 2
+            b = _bracket(od, brackets.get('dead_end',[]))
+            if b:
+                dead_ends[b] += de_total
+                rec['deadend_qty'] = de_total; rec['deadend_size'] = b
+            else: self._nb_warn('dead_end', fiber, od)
 
         self.v['dead_ends'] = dict(dead_ends)
         self.v['tangents'] = dict(tangents)
