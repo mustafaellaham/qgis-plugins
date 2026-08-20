@@ -186,7 +186,8 @@ class WizardDialogV2b(QDialog):
         if not ca_layer: return
 
         all_cables = []
-        for role in ['core_cable','Feeder','links']:
+        # Distribution included: multi-fiber (>1F) DC cables are conventional
+        for role in ['core_cable','Feeder','links','Distribution']:
             l = self.gen._L(role)
             if not l: continue
             for f in l.getFeatures():

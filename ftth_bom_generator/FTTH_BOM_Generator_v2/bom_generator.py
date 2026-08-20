@@ -331,8 +331,11 @@ class BOMGeneratorV2b:
                 if g and not g.isNull(): pole_geoms.append((f['Name'] or '', self._g(l, g)))
 
         # Collect conventional cables (transformed to metric working CRS)
+        # OWNER RULE: Distribution layer is scanned too — any cable >1F
+        # (12F/24F/48F...) is a conventional cable and follows the normal
+        # calculation scenario (dead-ends, tangents, hooks, gland/oval, audit).
         conventional = []
-        for role in ['core_cable','Feeder','links']:
+        for role in ['core_cable','Feeder','links','Distribution']:
             l = self._L(role)
             if not l: continue
             for f in l.getFeatures():
@@ -518,6 +521,25 @@ class BOMGeneratorV2b:
                         if g.distance(pg) <= tol: plum_set.add(pg.asWkt())
         self.v['wedges'] = 2*total_pass - 2*dc_touch
         self.v['plum_hooks'] = len(plum_set)
+        self.v['dist_pole_passes'] = total_pass  # audit Table 3, row 1
+
+        # poles hosting a feeder/link aggregation box or a distribution joint
+        # (audit Table 3, row 2) — unique poles within tolerance of any box/joint
+        box_geoms = []
+        for role_b in ['Feeder_aggregation', 'Link_Aggregation', 'Distributions joints']:
+            l_b = self._L(role_b)
+            if not l_b: continue
+            for f in l_b.getFeatures():
+                gb = f.geometry()
+                if gb and not gb.isNull():
+                    gb = self._g(l_b, gb)
+                    if gb.type() == 2: gb = gb.centroid()
+                    box_geoms.append(gb)
+        box_poles = set()
+        for pn, pg in pole_geoms:
+            if any(pg.distance(gb) <= tol for gb in box_geoms):
+                box_poles.add(pg.asWkt())
+        self.v['poles_with_boxes'] = len(box_poles)
 
     # ════════════════════════════════════════════════════════
     #  PHASE 4b: POP DETECTION
@@ -808,6 +830,25 @@ class BOMGeneratorV2b:
             ('SPLITTER BARE FIBRE 2 WAY', q('52345294')),
         ]
         for label, val in rows2:
+            ws.cell(row=r, column=1, value=label)
+            ws.cell(row=r, column=2, value=val)
+            r += 1
+
+        # ── Table 3: pole-join summary ──
+        r += 1
+        ws.cell(row=r, column=1, value='case').font = bold
+        ws.cell(row=r, column=2, value='QTY').font = bold
+        r += 1
+        rows3 = [
+            ('sum of total numbrt of poles passed by each distribution 1F cable '
+             '(join attributes by location, tolerance 5m, Distribution vs Poles, '
+             'summed over all distribution cables)',
+             self.v.get('dist_pole_passes', 0)),
+            ('total number of poles that having feeder/Link aggregation box '
+             'or distribution joint on it',
+             self.v.get('poles_with_boxes', 0)),
+        ]
+        for label, val in rows3:
             ws.cell(row=r, column=1, value=label)
             ws.cell(row=r, column=2, value=val)
             r += 1
