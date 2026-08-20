@@ -374,14 +374,25 @@ class BOMGeneratorV2b:
 
         for name, fiber, opt, od, g, role in conventional:
             xxxx, yyyy = self._name_lengths(name)
+            # OWNER RULE (2026-08-20): 'atual length' = MEASURED geometry length
+            # (meters, metric working CRS). Never trust the name — a planner
+            # typo must not flow silently into the audit.
+            measured = g.length()
             rec = {'name': name, 'fiber': fiber, 'od': od,
-                   'actual': (int(xxxx) if xxxx is not None else None),
+                   'actual': int(round(measured)),
                    'published': (int(yyyy * 1.05) if yyyy is not None else None),
                    'buffer': None,
                    'poles': 0, 'hooks': 0, 'agg_passes': 0, 'turns_gt15': 0,
                    'deadend_qty': 0, 'deadend_size': '',
                    'tangent_qty': 0, 'tangent_size': '',
                    'gland_oval': '', 'gland_oval_size': ''}
+            # Typo guard: flag big disagreement between name XXXX and measurement
+            if xxxx and measured > 0:
+                diff = abs(measured - xxxx)
+                if diff > 20 and diff / xxxx > 0.10:
+                    self.warnings.append(
+                        f"LENGTH MISMATCH: {name[:55]} — name says {int(xxxx)}m, "
+                        f"measured {int(round(measured))}m (possible name typo)")
             if rec['actual'] is not None and rec['published'] is not None:
                 rec['buffer'] = rec['published'] - rec['actual']
             cable_audit.append(rec); audit_by_name[name] = rec
