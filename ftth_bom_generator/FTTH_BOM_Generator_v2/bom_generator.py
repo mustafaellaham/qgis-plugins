@@ -733,6 +733,9 @@ class BOMGeneratorV2b:
                 notes.append(f"ITEM NOT FOUND: {code} — {str(ws.cell(row=row,column=2).value)[:45]}")
                 continue
             used_codes.add(code)
+            # SAFETY (v2.8.0): always clear the Qty cell first — a stale value
+            # in the template must never leak into an export when qty is 0.
+            ws.cell(row=row, column=3).value = None
             ws.cell(row=row, column=5, value=it.get('rule',''))
             if not it.get('enabled', True): continue
             qty = self._compute(it)
