@@ -240,8 +240,14 @@ class BOMGeneratorV2b:
         ph = defaultdict(int)
         l = self._L('Poles')
         if l:
+            # Height source priority: description first, then Name/name column
+            # (some designs carry height in the name, e.g. GMGZ2_P0044_9m)
+            nf = ('Name' if l.fields().indexOf('Name') != -1
+                  else ('name' if l.fields().indexOf('name') != -1 else None))
             for f in l.getFeatures():
                 h = _height(f['description'] or '')
+                if not h and nf:
+                    h = _height(f[nf] or '')
                 if h: ph[h] += 1
         v['poles_6m']=ph.get(6,0); v['poles_7m']=ph.get(7,0); v['poles_9m']=ph.get(9,0)
         v['total_poles']=sum(ph.values())
