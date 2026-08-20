@@ -76,6 +76,10 @@ class LayerMappingDialog(QDialog):
                 icon_hint = "[V]" if ltype == QgsMapLayer.VectorLayer else "[R]"
                 combo.addItem(f"{icon_hint} {lname}", lid)
 
+                # Owner rule: customized poles are maintenance-installed and are
+                # never the Poles source — block auto-select, keep manual choice.
+                if role == "Poles" and 'customized' in lname.lower():
+                    continue
                 # Match: role name keywords OR alias keywords — at least 50% must hit
                 kw_role = role.lower().replace("_", " ").split()
                 kw_alias = alias.lower().replace("_", " ").split()
